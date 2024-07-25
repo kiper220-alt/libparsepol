@@ -1,0 +1,15 @@
+PolicyFile = Header Body
+Header = Signature Version
+Signature = %x50.52.65.67
+Version = %x01 
+Body = Instructions
+Instructions = Instruction / (Instructions Instruction)
+IdCharacter = %x20-5B / %x5D-7E
+ValueCharacter = SP / VCHAR
+Key = 1*IdCharacter
+Instruction = "[" KeyPath ";" Value ";" Type ";" Size ";" Data "]"
+KeyPath = Key / KeyPath "\" Key
+Value = 1*259ValueCharacter
+Type = %x01 / %x02 / %x03 / %x04 / %x05 / %x07 / %x0B
+Size = %x00-FFFF 
+Data = *65535OCTET
