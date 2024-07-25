@@ -1,0 +1,19 @@
+# Abstracted ABNF 
+PolicyFile = Header Body 
+Header = Signature Version 
+Signature = \x50 \x52 \x65 \x67
+Version = \x01 
+IdCharacter = [\x20-\x5B\x5D-\x7E]
+Key = IdCharacter+
+SP = \x20
+VCHAR = [\x21-\x7E]
+NULL = \x0
+Value = ValueCharacter{1,256}? NULL 
+Type = [\x01\x02\x03\x04\x05\x07\x0B]
+Size = [\x00-\xFFFF]
+Data = .{0,65535}
+     | .{Size}
+
+Body = Instruction+
+Instruction = '[' KeyPath ';' Value ';' Type ';' Size ';' Data ']'
+KeyPath = Key ('\' Key)* NULL
