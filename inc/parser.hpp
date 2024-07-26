@@ -23,6 +23,7 @@
 #include <optional>
 #include <variant>
 #include <istream>
+#include <memory>
 
 enum class PolicyRegType {
     REG_NONE,
@@ -73,5 +74,12 @@ typedef struct PolicyFile
     std::optional<PolicyBody> body{};
 } PolicyFile;
 
-PolicyFile parse(const std::istream &stream);
-bool write(const PolicyFile &file, const std::istream &stream);
+class PRegParser
+{
+public:
+    virtual PolicyFile parse(std::istream &stream) = 0;
+    virtual bool write(const PolicyFile &file, const std::istream &stream) = 0;
+    virtual ~PRegParser() = default;
+};
+
+std::unique_ptr<PRegParser> createPregParser();
