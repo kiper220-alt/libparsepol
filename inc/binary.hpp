@@ -18,64 +18,65 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <iconv.h>
+#include <optional>
 #include <cinttypes>
 
 /*!
- * \brief Convert binary data to uint16_t
+ * \brief Get uint16_t from istream (binary)
  */
-static inline uint16_t bufferToUint16(const char *buffer);
+static inline std::optional<uint16_t> bufferToUint16(std::istream &buffer);
 
 /*!
- * \brief Convert binary data to uint16_t with invert byte order
+ * \brief Get uint16_t from istream (binary) (invert byte order)
  */
-static inline uint16_t bufferToUint16BE(const char *buffer);
+static inline std::optional<uint16_t> bufferToUint16BE(std::istream &buffer);
 
 /*!
- * \brief Convert binary data to uint32_t
+ * \brief Get uint32_t from istream (binary)
  */
-static inline uint32_t bufferToUint32(const char *buffer);
+static inline std::optional<uint32_t> bufferToUint32(std::istream &buffer);
 
 /*!
- * \brief Convert binary data to uint32_t with invert byte order
+ * \brief Get uint32_t from istream (binary) (invert byte order)
  */
-static inline uint32_t bufferToUint32BE(const char *buffer);
+static inline std::optional<uint32_t> bufferToUint32BE(std::istream &buffer);
 
 /*!
- * \brief Convert binary data to uint64_t
+ * \brief Get uint64_t from istream (binary)
  */
-static inline uint64_t bufferToUint64(const char *buffer);
+static inline std::optional<uint64_t> bufferToUint64(std::istream &buffer);
 
 /*!
- * \brief Convert binary data to uint64_t with invert byte order
+ * \brief Get uint64_t from istream (binary) (invert byte order)
  */
-static inline uint64_t bufferToUint64BE(const char *buffer);
+static inline std::optional<uint64_t> bufferToUint64BE(std::istream &buffer);
 
 /*!
- * \brief Convert uint16_t to binary data
+ * \brief Put uint16_t into ostream (binary)
  */
-static inline void uint16ToBuffer(char *buffer, uint16_t data);
+static inline bool uint16ToBuffer(std::ostream &buffer, uint16_t data);
 
 /*!
- * \brief Convert uint16_t to binary data with invert byte order
+ * \brief Put uint16_t into ostream (binary) (invert byte order)
  */
-static inline void uint16BEToBuffer(char *buffer, uint16_t data);
+static inline bool uint16BEToBuffer(std::ostream &buffer, uint16_t data);
 
 /*!
- * \brief Convert uint32_t to binary data
+ * \brief Put uint32_t into ostream (binary)
  */
-static inline void uint32ToBuffer(char *buffer, uint32_t data);
+static inline bool uint32ToBuffer(std::ostream &buffer, uint32_t data);
 
 /*!
- * \brief Convert uint32_t to binary data with invert byte order
+ * \brief Put uint32_t into ostream (binary) (invert byte order)
  */
-static inline void uint32BEToBuffer(char *buffer, uint32_t data);
+static inline bool uint32BEToBuffer(std::ostream &buffer, uint32_t data);
 
 /*!
- * \brief Convert uint64_t to binary data
+ * \brief Put uint64_t into ostream (binary)
  */
-static inline void uint64ToBuffer(char *buffer, uint64_t data);
+static inline bool uint64ToBuffer(std::ostream &buffer, uint64_t data);
 
 /*!
- * \brief Convert uint64_t to binary data with invert byte order
+ * \brief Put uint64_t into ostream (binary) (invert byte order)
  */
-static inline void uint64BEToBuffer(char *buffer, uint64_t data);
+static inline bool uint64BEToBuffer(std::ostream &buffer, uint64_t data);
