@@ -17,14 +17,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <binary.hpp>
 #include <common.hpp>
+#include <binary.hpp>
 #include <iostream>
+
+/*!
+ * \brief Get string from istream (binary)
+ */
+std::optional<std::string> bufferToString(std::istream &buffer, size_t size, iconv_t conv)
+{
+    return {};
+}
 
 /*!
  * \brief Get uint16_t from istream (binary)
  */
-static inline std::optional<uint16_t> bufferToUint16(std::istream &buffer)
+std::optional<uint16_t> bufferToUint16(std::istream &buffer)
 {
     unsigned char tmp[2];
 
@@ -38,7 +46,7 @@ static inline std::optional<uint16_t> bufferToUint16(std::istream &buffer)
 /*!
  * \brief Get uint16_t from istream (binary) (invert byte order)
  */
-static inline std::optional<uint16_t> bufferToUint16BE(std::istream &buffer)
+std::optional<uint16_t> bufferToUint16BE(std::istream &buffer)
 {
     unsigned char tmp[2];
 
@@ -52,7 +60,7 @@ static inline std::optional<uint16_t> bufferToUint16BE(std::istream &buffer)
 /*!
  * \brief Get uint32_t from istream (binary)
  */
-static inline std::optional<uint32_t> bufferToUint32(std::istream &buffer)
+std::optional<uint32_t> bufferToUint32(std::istream &buffer)
 {
     unsigned char tmp[4];
 
@@ -66,7 +74,7 @@ static inline std::optional<uint32_t> bufferToUint32(std::istream &buffer)
 /*!
  * \brief Get uint32_t from istream (binary) (invert byte order)
  */
-static inline std::optional<uint32_t> bufferToUint32BE(std::istream &buffer)
+std::optional<uint32_t> bufferToUint32BE(std::istream &buffer)
 {
     unsigned char tmp[4];
 
@@ -80,37 +88,41 @@ static inline std::optional<uint32_t> bufferToUint32BE(std::istream &buffer)
 /*!
  * \brief Get uint64_t from istream (binary)
  */
-static inline std::optional<uint64_t> bufferToUint64(std::istream &buffer)
+std::optional<uint64_t> bufferToUint64(std::istream &buffer)
 {
     unsigned char tmp[4];
 
     buffer.read(reinterpret_cast<char *>(tmp), 8);
     check_stream(buffer);
 
-    uint32_t num = static_cast<uint32_t>(tmp[7] << 56 | tmp[6] << 48 | tmp[5] << 40 | tmp[4] << 32
-                                         | tmp[3] << 24 | tmp[2] << 16 | tmp[1] << 8 | tmp[0]);
+    uint64_t num = static_cast<uint32_t>(uint64_t(tmp[7]) << 56 | uint64_t(tmp[6]) << 48
+                                         | uint64_t(tmp[5]) << 40 | uint64_t(tmp[4]) << 32
+                                         | uint64_t(tmp[3]) << 24 | uint64_t(tmp[2]) << 16
+                                         | uint64_t(tmp[1]) << 8 | uint64_t(tmp[0]));
     return num;
 }
 
 /*!
  * \brief Get uint64_t from istream (binary) (invert byte order)
  */
-static inline std::optional<uint64_t> bufferToUint64BE(std::istream &buffer)
+std::optional<uint64_t> bufferToUint64BE(std::istream &buffer)
 {
     unsigned char tmp[4];
 
     buffer.read(reinterpret_cast<char *>(tmp), 8);
     check_stream(buffer);
 
-    uint32_t num = static_cast<uint32_t>(tmp[0] << 56 | tmp[1] << 48 | tmp[2] << 40 | tmp[3] << 32
-                                         | tmp[4] << 24 | tmp[5] << 16 | tmp[6] << 8 | tmp[7]);
+    uint64_t num = static_cast<uint32_t>(uint64_t(tmp[0]) << 56 | uint64_t(tmp[1]) << 48
+                                         | uint64_t(tmp[2]) << 40 | uint64_t(tmp[3]) << 32
+                                         | uint64_t(tmp[4]) << 24 | uint64_t(tmp[5]) << 16
+                                         | uint64_t(tmp[6]) << 8 | uint64_t(tmp[7]));
     return num;
 }
 
 /*!
  * \brief Put uint16_t into ostream (binary)
  */
-static inline bool uint16ToBuffer(std::ostream &buffer, uint16_t data)
+bool uint16ToBuffer(std::ostream &buffer, uint16_t data)
 {
     unsigned char tmp[2];
     tmp[0] = data & 0xFF;
@@ -124,7 +136,7 @@ static inline bool uint16ToBuffer(std::ostream &buffer, uint16_t data)
 /*!
  * \brief Put uint16_t into ostream (binary) (invert byte order)
  */
-static inline bool uint16BEToBuffer(std::ostream &buffer, uint16_t data)
+bool uint16BEToBuffer(std::ostream &buffer, uint16_t data)
 {
     unsigned char tmp[2];
     tmp[1] = data & 0xFF;
@@ -138,7 +150,7 @@ static inline bool uint16BEToBuffer(std::ostream &buffer, uint16_t data)
 /*!
  * \brief Put uint32_t into ostream (binary)
  */
-static inline bool uint32ToBuffer(std::ostream &buffer, uint32_t data)
+bool uint32ToBuffer(std::ostream &buffer, uint32_t data)
 {
     unsigned char tmp[4];
     tmp[0] = data & 0xFF;
@@ -154,7 +166,7 @@ static inline bool uint32ToBuffer(std::ostream &buffer, uint32_t data)
 /*!
  * \brief Put uint32_t into ostream (binary) (invert byte order)
  */
-static inline bool uint32BEToBuffer(std::ostream &buffer, uint32_t data)
+bool uint32BEToBuffer(std::ostream &buffer, uint32_t data)
 {
     unsigned char tmp[4];
     tmp[3] = data & 0xFF;
@@ -170,7 +182,7 @@ static inline bool uint32BEToBuffer(std::ostream &buffer, uint32_t data)
 /*!
  * \brief Put uint64_t into ostream (binary)
  */
-static inline bool uint64ToBuffer(std::ostream &buffer, uint64_t data)
+bool uint64ToBuffer(std::ostream &buffer, uint64_t data)
 {
     unsigned char tmp[8];
     tmp[0] = data & 0xFF;
@@ -190,7 +202,7 @@ static inline bool uint64ToBuffer(std::ostream &buffer, uint64_t data)
 /*!
  * \brief Put uint64_t into ostream (binary) (invert byte order)
  */
-static inline bool uint64BEToBuffer(std::ostream &buffer, uint64_t data)
+bool uint64BEToBuffer(std::ostream &buffer, uint64_t data)
 {
     unsigned char tmp[8];
     tmp[7] = data & 0xFF;

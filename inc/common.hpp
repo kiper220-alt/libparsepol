@@ -41,13 +41,13 @@
             return false;         \
         }                         \
     }
-#define check_sym(stream, sym)              \
-    {                                       \
-        char buff[2];                       \
-        const unsigned &uint8_t = *buff;    \
-        stream.read(buff, 2);               \
-        if (target.fail() || buff != sym) { \
-            return {};                      \
-        }                                   \
+#define check_sym(target, sym)                \
+    {                                         \
+        char buff[2];                         \
+        const uint8_t &symbol = *buff;        \
+        target.read(buff, 2);                 \
+        if (target.fail() || symbol != sym) { \
+            return {};                        \
+        }                                     \
     }
 #endif // PREGPARSER_COMMON

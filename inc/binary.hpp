@@ -24,64 +24,71 @@
 #include <iconv.h>
 #include <optional>
 #include <cinttypes>
+#include <iostream>
+
+/*!
+ * \brief Get string from istream (binary)
+ */
+std::optional<std::string> bufferToString(std::istream &buffer, size_t size,
+                                          iconv_t conv = nullptr);
 
 /*!
  * \brief Get uint16_t from istream (binary)
  */
-static inline std::optional<uint16_t> bufferToUint16(std::istream &buffer);
+std::optional<uint16_t> bufferToUint16(std::istream &buffer);
 
 /*!
  * \brief Get uint16_t from istream (binary) (invert byte order)
  */
-static inline std::optional<uint16_t> bufferToUint16BE(std::istream &buffer);
+std::optional<uint16_t> bufferToUint16BE(std::istream &buffer);
 
 /*!
  * \brief Get uint32_t from istream (binary)
  */
-static inline std::optional<uint32_t> bufferToUint32(std::istream &buffer);
+std::optional<uint32_t> bufferToUint32(std::istream &buffer);
 
 /*!
  * \brief Get uint32_t from istream (binary) (invert byte order)
  */
-static inline std::optional<uint32_t> bufferToUint32BE(std::istream &buffer);
+std::optional<uint32_t> bufferToUint32BE(std::istream &buffer);
 
 /*!
  * \brief Get uint64_t from istream (binary)
  */
-static inline std::optional<uint64_t> bufferToUint64(std::istream &buffer);
+std::optional<uint64_t> bufferToUint64(std::istream &buffer);
 
 /*!
  * \brief Get uint64_t from istream (binary) (invert byte order)
  */
-static inline std::optional<uint64_t> bufferToUint64BE(std::istream &buffer);
+std::optional<uint64_t> bufferToUint64BE(std::istream &buffer);
 
 /*!
  * \brief Put uint16_t into ostream (binary)
  */
-static inline bool uint16ToBuffer(std::ostream &buffer, uint16_t data);
+bool uint16ToBuffer(std::ostream &buffer, uint16_t data);
 
 /*!
  * \brief Put uint16_t into ostream (binary) (invert byte order)
  */
-static inline bool uint16BEToBuffer(std::ostream &buffer, uint16_t data);
+bool uint16BEToBuffer(std::ostream &buffer, uint16_t data);
 
 /*!
  * \brief Put uint32_t into ostream (binary)
  */
-static inline bool uint32ToBuffer(std::ostream &buffer, uint32_t data);
+bool uint32ToBuffer(std::ostream &buffer, uint32_t data);
 
 /*!
  * \brief Put uint32_t into ostream (binary) (invert byte order)
  */
-static inline bool uint32BEToBuffer(std::ostream &buffer, uint32_t data);
+bool uint32BEToBuffer(std::ostream &buffer, uint32_t data);
 
 /*!
  * \brief Put uint64_t into ostream (binary)
  */
-static inline bool uint64ToBuffer(std::ostream &buffer, uint64_t data);
+bool uint64ToBuffer(std::ostream &buffer, uint64_t data);
 
 /*!
  * \brief Put uint64_t into ostream (binary) (invert byte order)
  */
-static inline bool uint64BEToBuffer(std::ostream &buffer, uint64_t data);
+bool uint64BEToBuffer(std::ostream &buffer, uint64_t data);
 #endif // PREGPARSER_BINARY
