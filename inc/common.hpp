@@ -32,6 +32,12 @@
             return {};       \
         }                    \
     }
+#define check_stream_bool(target) \
+    {                             \
+        if (target.fail()) {      \
+            return false;         \
+        }                         \
+    }
 #define check_sym(stream, sym)              \
     {                                       \
         char buff[2];                       \
