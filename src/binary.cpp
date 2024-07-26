@@ -22,65 +22,65 @@
 /*!
  * \brief Convert binary data to uint16_t
  */
-static inline uint16_t bufferToUint16(const char *type_buffer)
+static inline uint16_t bufferToUint16(const char *buffer)
 {
-    auto buffer = reinterpret_cast<const unsigned char *>(type_buffer);
-    uint16_t num = static_cast<uint16_t>(buffer[1] << 8 | buffer[0]);
+    auto _buffer = reinterpret_cast<const unsigned char *>(buffer);
+    uint16_t num = static_cast<uint16_t>(_buffer[1] << 8 | _buffer[0]);
     return num;
 }
 
 /*!
  * \brief Convert binary data to uint16_t with invert byte order
  */
-static inline uint16_t bufferToUint16BE(const char *type_buffer)
+static inline uint16_t bufferToUint16BE(const char *buffer)
 {
-    auto buffer = reinterpret_cast<const unsigned char *>(type_buffer);
-    uint16_t num = static_cast<uint16_t>(buffer[0] << 8 | buffer[1]);
+    auto _buffer = reinterpret_cast<const unsigned char *>(buffer);
+    uint16_t num = static_cast<uint16_t>(_buffer[0] << 8 | _buffer[1]);
     return num;
 }
 
 /*!
  * \brief Convert binary data to uint32_t
  */
-static inline uint32_t bufferToUint32(const char *type_buffer)
+static inline uint32_t bufferToUint32(const char *buffer)
 {
-    auto buffer = reinterpret_cast<const unsigned char *>(type_buffer);
-    uint32_t num =
-            static_cast<uint32_t>(buffer[3] << 24 | buffer[2] << 16 | buffer[1] << 8 | buffer[0]);
+    auto _buffer = reinterpret_cast<const unsigned char *>(buffer);
+    uint32_t num = static_cast<uint32_t>(_buffer[3] << 24 | _buffer[2] << 16 | _buffer[1] << 8
+                                         | _buffer[0]);
     return num;
 }
 
 /*!
  * \brief Convert binary data to uint32_t with invert byte order
  */
-static inline uint32_t bufferToUint32BE(const char *type_buffer)
+static inline uint32_t bufferToUint32BE(const char *buffer)
 {
-    auto buffer = reinterpret_cast<const unsigned char *>(type_buffer);
-    uint32_t num =
-            static_cast<uint32_t>(buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3]);
+    auto _buffer = reinterpret_cast<const unsigned char *>(buffer);
+    uint32_t num = static_cast<uint32_t>(_buffer[0] << 24 | _buffer[1] << 16 | _buffer[2] << 8
+                                         | _buffer[3]);
     return num;
 }
 
 /*!
  * \brief Convert binary data to uint64_t
  */
-static inline uint64_t bufferToUint64(const char *type_buffer)
+static inline uint64_t bufferToUint64(const char *buffer)
 {
-    auto buffer = reinterpret_cast<const unsigned char *>(type_buffer);
-    uint32_t num = static_cast<uint32_t>(buffer[7] << 56 | buffer[6] << 48 | buffer[5] << 40
-                                         | buffer[4] << 32 | buffer[3] << 24 | buffer[2] << 16
-                                         | buffer[1] << 8 | buffer[0]);
+    auto _buffer = reinterpret_cast<const unsigned char *>(buffer);
+    uint32_t num = static_cast<uint32_t>(_buffer[7] << 56 | _buffer[6] << 48 | _buffer[5] << 40
+                                         | _buffer[4] << 32 | _buffer[3] << 24 | _buffer[2] << 16
+                                         | _buffer[1] << 8 | _buffer[0]);
     return num;
 }
 
 /*!
  * \brief Convert binary data to uint64_t with invert byte order
  */
-static inline uint64_t bufferToUint64BE(const char *type_buffer)
+static inline uint64_t bufferToUint64BE(const char *buffer)
 {
-    auto buffer = reinterpret_cast<const unsigned char *>(type_buffer);
-    uint32_t num = static_cast<uint32_t>(buffer[0] << 56 | buffer[1] << 48 | buffer[2] << 40
-                                         | buffer[3] << 32 | buffer[4] << 24 | buffer[5] << 16
-                                         | buffer[6] << 8 | buffer[7]);
+    auto _buffer = reinterpret_cast<const unsigned char *>(buffer);
+    uint32_t num = static_cast<uint32_t>(_buffer[0] << 56 | _buffer[1] << 48 | _buffer[2] << 40
+                                         | _buffer[3] << 32 | _buffer[4] << 24 | _buffer[5] << 16
+                                         | _buffer[6] << 8 | _buffer[7]);
     return num;
 }

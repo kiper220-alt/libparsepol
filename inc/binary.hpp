@@ -25,7 +25,37 @@
 /*!
  * \brief Convert binary data to uint16_t
  */
-static inline uint16_t bufferToUint16(const char *type_buffer);
+static inline uint16_t bufferToUint16(const char *buffer);
+
+/*!
+ * \brief Convert binary data to uint16_t with invert byte order
+ */
+static inline uint16_t bufferToUint16BE(const char *buffer);
+
+/*!
+ * \brief Convert binary data to uint32_t
+ */
+static inline uint32_t bufferToUint32(const char *buffer);
+
+/*!
+ * \brief Convert binary data to uint32_t with invert byte order
+ */
+static inline uint32_t bufferToUint32BE(const char *buffer);
+
+/*!
+ * \brief Convert binary data to uint64_t
+ */
+static inline uint64_t bufferToUint64(const char *buffer);
+
+/*!
+ * \brief Convert binary data to uint64_t with invert byte order
+ */
+static inline uint64_t bufferToUint64BE(const char *buffer);
+
+/*!
+ * \brief Convert binary data to uint16_t
+ */
+static inline uint16_t bufferToUint16(const char *buffer);
 
 /*!
  * \brief Convert binary data to uint16_t with invert byte order
