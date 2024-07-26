@@ -17,6 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef PREGPARSER_PARSER
+#define PREGPARSER_PARSER
 
 #include <string>
 #include <vector>
@@ -83,3 +85,5 @@ public:
 };
 
 std::unique_ptr<PRegParser> createPregParser();
+
+#endif // PREGPARSER_PARSER

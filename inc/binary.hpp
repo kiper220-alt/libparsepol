@@ -17,6 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#ifndef PREGPARSER_BINARY
+#define PREGPARSER_BINARY
+
 #include <iconv.h>
 #include <optional>
 #include <cinttypes>
@@ -80,3 +84,4 @@ static inline bool uint64ToBuffer(std::ostream &buffer, uint64_t data);
  * \brief Put uint64_t into ostream (binary) (invert byte order)
  */
 static inline bool uint64BEToBuffer(std::ostream &buffer, uint64_t data);
+#endif // PREGPARSER_BINARY
