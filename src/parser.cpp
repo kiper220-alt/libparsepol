@@ -19,22 +19,7 @@
  */
 #include <parser.hpp>
 #include <binary.hpp>
-
-#define must_present(target, source) \
-    {                                \
-        auto data = source;          \
-        if (!data.has_value()) {     \
-            return {};               \
-        }                            \
-        target = *data;              \
-    }
-
-#define check_stream(target) \
-    {                        \
-        if (target.fail()) { \
-            return {};       \
-        }                    \
-    }
+#include <common.hpp>
 
 /*!
  * \brief Valid POL Registery file header

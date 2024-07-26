@@ -18,6 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <binary.hpp>
+#include <common.hpp>
+#include <iostream>
 
 /*!
  * \brief Convert binary data to uint16_t
