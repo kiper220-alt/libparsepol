@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <parser.hpp>
-#include <iconv.h>
+#include <binary.hpp>
 
 #define must_present(target, source) \
     {                                \
@@ -41,56 +41,6 @@
 * \brief Valid POL Registery file header
 */
 static const char valid_header[5] = { 0x50, 0x52, 0x65, 0x67, 0x01 };
-
-// TODO: move to a separate file `bufferToUint16` `bufferToUint32` `bufferToUint32BE` and etc.
-// TODO: Implement all the missing functions like `uint64Tobuffer`, `bufferToUint16BE` and etc.
-static inline uint16_t bufferToUint16(const char *type_buffer)
-{
-    uint16_t num = static_cast<uint16_t>(static_cast<unsigned char>(type_buffer[1]) << 8
-                                         | static_cast<unsigned char>(type_buffer[0]));
-    return num;
-}
-
-static inline uint32_t bufferToUint32(const char *type_buffer)
-{
-    uint32_t num = static_cast<uint32_t>(static_cast<unsigned char>(type_buffer[3]) << 24
-                                         | static_cast<unsigned char>(type_buffer[2]) << 16
-                                         | static_cast<unsigned char>(type_buffer[1]) << 8
-                                         | static_cast<unsigned char>(type_buffer[0]));
-    return num;
-}
-static inline uint32_t bufferToUint32BE(const char *type_buffer)
-{
-    uint32_t num = static_cast<uint32_t>(static_cast<unsigned char>(type_buffer[0]) << 24
-                                         | static_cast<unsigned char>(type_buffer[1]) << 16
-                                         | static_cast<unsigned char>(type_buffer[2]) << 8
-                                         | static_cast<unsigned char>(type_buffer[3]));
-    return num;
-}
-static inline uint32_t bufferToUint64(const char *type_buffer)
-{
-    uint32_t num = static_cast<uint32_t>(static_cast<unsigned char>(type_buffer[7]) << 56
-                                         | static_cast<unsigned char>(type_buffer[6]) << 48
-                                         | static_cast<unsigned char>(type_buffer[5]) << 40
-                                         | static_cast<unsigned char>(type_buffer[4]) << 32
-                                         | static_cast<unsigned char>(type_buffer[3]) << 24
-                                         | static_cast<unsigned char>(type_buffer[2]) << 16
-                                         | static_cast<unsigned char>(type_buffer[1]) << 8
-                                         | static_cast<unsigned char>(type_buffer[0]));
-    return num;
-}
-static inline uint32_t bufferToUint64BE(const char *type_buffer)
-{
-    uint32_t num = static_cast<uint32_t>(static_cast<unsigned char>(type_buffer[0]) << 56
-                                         | static_cast<unsigned char>(type_buffer[1]) << 48
-                                         | static_cast<unsigned char>(type_buffer[2]) << 40
-                                         | static_cast<unsigned char>(type_buffer[3]) << 32
-                                         | static_cast<unsigned char>(type_buffer[4]) << 24
-                                         | static_cast<unsigned char>(type_buffer[5]) << 16
-                                         | static_cast<unsigned char>(type_buffer[6]) << 8
-                                         | static_cast<unsigned char>(type_buffer[7]));
-    return num;
-}
 
 /*!
  * \brief Check regex `(.{size})\]` and return first group as std::string
