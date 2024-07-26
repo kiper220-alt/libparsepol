@@ -36,6 +36,49 @@ static inline bool isValueCharacter(uint8_t sym)
 
 class PRegParserPrivate : public PRegParser
 {
+private:
+    /*!
+     * \brief Check regex `(.{size})\]` and return first group as std::string
+     */
+    inline std::optional<std::string> getString(std::istream &stream, PolicyRegType type,
+                                                uint32_t size);
+    /*!
+     * \brief Check regex `(.{size})\]` and return first group as std::vector<uint8_t>
+     */
+    inline std::optional<std::vector<uint8_t>> getOctet(std::istream &stream, PolicyRegType type,
+                                                        uint32_t size);
+    /*!
+     * \brief Check regex `(.{4})\]` and return first group as uint32_t
+     */
+    inline std::optional<uint32_t> getUint32(std::istream &stream, PolicyRegType type,
+                                             uint32_t size);
+    /*!
+     * \brief Check regex `\x50\x52\x65\x67`
+     */
+    inline bool parseHeader(std::istream &stream);
+    /*!
+     * \brief Check regex `(.{4});` and return first group as uint32_t
+     */
+    inline std::optional<uint32_t> getSize(std::istream &stream);
+    /*!
+     * \brief Check 32bit regex `([\x1\x2\x3\x4\x5\x6\x7\x8\x9\xA\xB\xC]);` and return first group
+     * as Type
+     */
+    inline std::optional<PolicyRegType> getType(std::istream &stream);
+    /*!
+     * \brief Matches regex `([\x20-\x7E]+);` and return first group as result
+     */
+    inline std::optional<std::string> getKeypath(std::istream &stream);
+    /*!
+     * \brief Matches regex `([\x20-\x7E]{1,259});` and return first group as result
+     */
+    inline std::optional<std::string> getValue(std::istream &stream);
+    /*!
+     * \brief Matches ABNF `'[' KeyPath ';' Value ';' Type ';' Size ';' Data ']'` and return reduced
+     * structure
+     */
+    inline std::optional<PolicyInstruction> getInstruction(std::istream &stream);
+
 public:
     PRegParserPrivate()
     {
@@ -63,9 +106,6 @@ public:
     }
 
 private:
-    /*!
-     * \brief Check regex `(.{size})\]` and return first group as std::string
-     */
     inline std::optional<std::string> getString(std::istream &stream, PolicyRegType type,
                                                 uint32_t size)
     {
@@ -74,9 +114,6 @@ private:
         return data;
     }
 
-    /*!
-     * \brief Check regex `(.{size})\]` and return first group as std::vector<uint8_t>
-     */
     inline std::optional<std::vector<uint8_t>> getOctet(std::istream &stream, PolicyRegType type,
                                                         uint32_t size)
     {
@@ -91,9 +128,6 @@ private:
         return data;
     }
 
-    /*!
-     * \brief Check regex `(.{4})\]` and return first group as uint32_t
-     */
     inline std::optional<uint32_t> getUint32(std::istream &stream, PolicyRegType type,
                                              uint32_t size)
     {
@@ -114,9 +148,6 @@ private:
         return bufferToUint32(buff);
     }
 
-    /*!
-     * \brief Check regex `\x50\x52\x65\x67`
-     */
     inline bool parseHeader(std::istream &stream)
     {
         char header[5];
@@ -129,9 +160,6 @@ private:
         return signature == normal_signature && header[4] == valid_header[4];
     }
 
-    /*!
-     * \brief Check regex `(.{4});` and return first group as uint32_t
-     */
     inline std::optional<uint32_t> getSize(std::istream &stream)
     {
         char data[6];
@@ -152,10 +180,6 @@ private:
         return num;
     }
 
-    /*!
-     * \brief Check 32bit regex `([\x1\x2\x3\x4\x5\x6\x7\x8\x9\xA\xB\xC]);` and return first group
-     * as Type
-     */
     inline std::optional<PolicyRegType> getType(std::istream &stream)
     {
         // identicaly to get size, but with convert to PolicyRegType.
@@ -183,9 +207,6 @@ private:
         return static_cast<PolicyRegType>(num);
     }
 
-    /*!
-     * \brief Matches regex `([\x20-\x7E]+);` and return first group as result
-     */
     inline std::optional<std::string> getKeypath(std::istream &stream)
     {
         std::string keyPath;
@@ -204,9 +225,6 @@ private:
         return { keyPath };
     }
 
-    /*!
-     * \brief Matches regex `([\x20-\x7E]{1,259});` and return first group as result
-     */
     inline std::optional<std::string> getValue(std::istream &stream)
     {
         std::string result;
@@ -222,10 +240,6 @@ private:
         return { std::move(result) };
     }
 
-    /*!
-     * \brief Matches ABNF `'[' KeyPath ';' Value ';' Type ';' Size ';' Data ']'` and return reduced
-     * structure
-     */
     inline std::optional<PolicyInstruction> getInstruction(std::istream &stream)
     {
         PolicyInstruction instruction;
