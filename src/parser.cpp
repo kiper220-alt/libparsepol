@@ -36,10 +36,9 @@
         }                    \
     }
 
-
 /*!
-* \brief Valid POL Registery file header
-*/
+ * \brief Valid POL Registery file header
+ */
 static const char valid_header[5] = { 0x50, 0x52, 0x65, 0x67, 0x01 };
 
 /*!
@@ -90,13 +89,12 @@ static inline std::optional<std::vector<uint8_t>> getOctet(std::istream &stream,
  * \brief Check regex `(.{4})\]` and return first group as uint32_t
  */
 static inline std::optional<uint32_t> getUint32(std::istream &stream, PolicyRegType type,
-                                                           uint32_t size)
+                                                uint32_t size)
 {
     char buff[6];
     const uint8_t &sym = buff[4];
 
-    if (size != 4)
-    {
+    if (size != 4) {
         return {};
     }
 
@@ -258,6 +256,7 @@ PolicyFile parse(std::istream &stream)
 
     return { body };
 }
+
 bool write(const PolicyFile &file, std::istream &stream)
 {
     return false;
