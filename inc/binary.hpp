@@ -20,8 +20,6 @@
 #include <iconv.h>
 #include <cinttypes>
 
-// TODO: Implement all the missing functions like `uint64Tobuffer`.
-
 /*!
  * \brief Convert binary data to uint16_t
  */
@@ -53,31 +51,31 @@ static inline uint64_t bufferToUint64(const char *buffer);
 static inline uint64_t bufferToUint64BE(const char *buffer);
 
 /*!
- * \brief Convert binary data to uint16_t
+ * \brief Convert uint16_t to binary data
  */
-static inline uint16_t bufferToUint16(const char *buffer);
+static inline void uint16ToBuffer(char *buffer, uint16_t data);
 
 /*!
- * \brief Convert binary data to uint16_t with invert byte order
+ * \brief Convert uint16_t to binary data with invert byte order
  */
-static inline uint16_t bufferToUint16BE(const char *type_buffer);
+static inline void uint16BEToBuffer(char *buffer, uint16_t data);
 
 /*!
- * \brief Convert binary data to uint32_t
+ * \brief Convert uint32_t to binary data
  */
-static inline uint32_t bufferToUint32(const char *type_buffer);
+static inline void uint32ToBuffer(char *buffer, uint32_t data);
 
 /*!
- * \brief Convert binary data to uint32_t with invert byte order
+ * \brief Convert uint32_t to binary data with invert byte order
  */
-static inline uint32_t bufferToUint32BE(const char *type_buffer);
+static inline void uint32BEToBuffer(char *buffer, uint32_t data);
 
 /*!
- * \brief Convert binary data to uint64_t
+ * \brief Convert uint64_t to binary data
  */
-static inline uint64_t bufferToUint64(const char *type_buffer);
+static inline void uint64ToBuffer(char *buffer, uint64_t data);
 
 /*!
- * \brief Convert binary data to uint64_t with invert byte order
+ * \brief Convert uint64_t to binary data with invert byte order
  */
-static inline uint64_t bufferToUint64BE(const char *type_buffer);
+static inline void uint64BEToBuffer(char *buffer, uint64_t data);

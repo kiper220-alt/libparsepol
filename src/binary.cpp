@@ -84,3 +84,79 @@ static inline uint64_t bufferToUint64BE(const char *buffer)
                                          | _buffer[6] << 8 | _buffer[7]);
     return num;
 }
+
+/*!
+ * \brief Convert uint16_t to binary data
+ */
+static inline void uint16ToBuffer(char *buffer, uint16_t data)
+{
+    auto _buffer = reinterpret_cast<unsigned char *>(buffer);
+    _buffer[0] = data & 0xFF;
+    _buffer[1] = (data >> 8) & 0xFF;
+}
+
+/*!
+ * \brief Convert uint16_t to binary data with invert byte order
+ */
+static inline void uint16BEToBuffer(char *buffer, uint16_t data)
+{
+    auto _buffer = reinterpret_cast<unsigned char *>(buffer);
+    _buffer[1] = data & 0xFF;
+    _buffer[0] = (data >> 8) & 0xFF;
+}
+
+/*!
+ * \brief Convert uint32_t to binary data
+ */
+static inline void uint32ToBuffer(char *buffer, uint32_t data)
+{
+    auto _buffer = reinterpret_cast<unsigned char *>(buffer);
+    _buffer[0] = data & 0xFF;
+    _buffer[1] = (data >> 8) & 0xFF;
+    _buffer[2] = (data >> 16) & 0xFF;
+    _buffer[3] = (data >> 24) & 0xFF;
+}
+
+/*!
+ * \brief Convert uint32_t to binary data with invert byte order
+ */
+static inline void uint32BEToBuffer(char *buffer, uint32_t data)
+{
+    auto _buffer = reinterpret_cast<unsigned char *>(buffer);
+    _buffer[3] = data & 0xFF;
+    _buffer[2] = (data >> 8) & 0xFF;
+    _buffer[1] = (data >> 16) & 0xFF;
+    _buffer[0] = (data >> 24) & 0xFF;
+}
+
+/*!
+ * \brief Convert uint64_t to binary data
+ */
+static inline void uint64ToBuffer(char *buffer, uint64_t data)
+{
+    auto _buffer = reinterpret_cast<unsigned char *>(buffer);
+    _buffer[0] = data & 0xFF;
+    _buffer[1] = (data >> 8) & 0xFF;
+    _buffer[2] = (data >> 16) & 0xFF;
+    _buffer[3] = (data >> 24) & 0xFF;
+    _buffer[4] = (data >> 32) & 0xFF;
+    _buffer[5] = (data >> 40) & 0xFF;
+    _buffer[6] = (data >> 48) & 0xFF;
+    _buffer[7] = (data >> 56) & 0xFF;
+}
+
+/*!
+ * \brief Convert uint64_t to binary data with invert byte order
+ */
+static inline void uint64BEToBuffer(char *buffer, uint64_t data)
+{
+    auto _buffer = reinterpret_cast<unsigned char *>(buffer);
+    _buffer[7] = data & 0xFF;
+    _buffer[6] = (data >> 8) & 0xFF;
+    _buffer[5] = (data >> 16) & 0xFF;
+    _buffer[4] = (data >> 24) & 0xFF;
+    _buffer[3] = (data >> 32) & 0xFF;
+    _buffer[2] = (data >> 40) & 0xFF;
+    _buffer[1] = (data >> 48) & 0xFF;
+    _buffer[0] = (data >> 56) & 0xFF;
+}
