@@ -212,12 +212,30 @@ private:
         std::string keyPath;
         char data[2];
         const uint8_t &sym = *data;
+        bool next_delimeter = false; // first character can'nt be delimeter
+
+        stream.read(data, 2);
+        check_stream(stream);
 
         // Key in specs [\x20-\x5B\x5D-\x7E](exclude '\'), when keypath include '\' like delimeter
-        do {
+        while (sym >= 0x20 && sym <= 0x7E) {
+            // Key from Keypath must contain 1 or more symbols.
+            if (sym == 0x5C) {
+                if (!next_delimeter) {
+                    return {};
+                }
+                // Next character cannot be delimeter
+                next_delimeter = false;
+            } else {
+                // Next character can be delimeter
+                next_delimeter = true;
+            }
+
+            keyPath.push_back(sym);
+
             stream.read(data, 2);
             check_stream(stream);
-        } while (sym >= 0x20 && sym <= 0x7E);
+        }
 
         if (sym != ';' || !keyPath.empty()) {
             return {};
