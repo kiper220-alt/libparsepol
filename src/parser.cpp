@@ -246,12 +246,28 @@ private:
     inline std::optional<std::string> getValue(std::istream &stream)
     {
         std::string result;
+        char data[2];
+        const uint8_t &sym = *data;
 
-        // ValueCharacter symbols identical to KeyPath symbols
-        must_present(result, getKeypath(stream));
+        stream.read(data, 2);
+        check_stream(stream);
 
-        // Check maximum value length
-        if (result.length() > 259) {
+        // Key in specs [\x20-\x5B\x5D-\x7E](exclude '\'), when keypath include '\' like delimeter
+        while (sym >= 0x20 && sym <= 0x7E) {
+            // Key from Keypath must contain 1 or more symbols.
+
+            // Check maximum value length
+            if (result.length() == 259) {
+                return {};
+            }
+            
+            result.push_back(sym);
+
+            stream.read(data, 2);
+            check_stream(stream);
+        }
+
+        if (sym != ';' || !result.empty()) {
             return {};
         }
 
