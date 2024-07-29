@@ -25,12 +25,72 @@
 #include <optional>
 #include <cinttypes>
 #include <iostream>
+#include <encoding.hpp>
 
 /*!
  * \brief Get string from istream (binary)
+ * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
+ * \return on any error return empty optional.
+ * \warning string in buffer must be ended with '\0'.
+ * \warning `conv` must be initialized by `iconv_open("UTF-8", "UTF-16LE")`
+ * \warning if `conv` is (size_t)-1, then function will return empty optional.
  */
 std::optional<std::string> bufferToString(std::istream &buffer, size_t size,
                                           iconv_t conv = nullptr);
+/*!
+ * \brief Get string from istream (binary)
+ * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
+ * \return on any error return false.
+ * \warning string in buffer must be ended with '\0'.
+ * \warning `conv` must be initialized by `iconv_open("UTF-16LE", "UTF-8")`
+ * \warning if `conv` is (size_t)-1, then function will return false.
+ */
+bool stringToBuffer(std::ostream &buffer, std::string &data, iconv_t conv = nullptr);
+
+/*!
+ * \brief Get integral number from istream (binary)
+ */
+template <typename T, bool LE = true,
+          typename = std::enable_if_t<std::is_integral_v<T>
+                                      && sizeof(T) <= sizeof(unsigned long long)>>
+std::optional<T> bufferToIntegral(std::istream &buffer)
+{
+    T num = 0;
+
+    buffer.read(reinterpret_cast<char *>(&num), sizeof(T));
+    if (buffer.fail()) {
+        return {};
+    }
+    if constexpr (LE) {
+        return leToNative<T>(num);
+    } else {
+        return beToNative<T>(num);
+    }
+
+    return num;
+}
+
+/*!
+ * \brief Put integral number to ostream (binary)
+ */
+template <typename T, bool LE = true,
+          typename = std::enable_if_t<std::is_integral_v<T>
+                                      && sizeof(T) <= sizeof(unsigned long long)>>
+bool integralToBuffer(std::ostream &buffer, T num)
+{
+    if constexpr (LE) {
+        num = leToNative<T>(num);
+    } else {
+        num = beToNative<T>(num);
+    }
+
+    buffer.write(reinterpret_cast<char *>(&num), sizeof(T));
+    if (buffer.fail()) {
+        return false;
+    }
+
+    return true;
+}
 
 /*!
  * \brief Get uint16_t from istream (binary)

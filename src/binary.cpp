@@ -23,10 +23,74 @@
 
 /*!
  * \brief Get string from istream (binary)
+ * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
+ * \return on any error return empty optional.
+ * \warning string in buffer must be ended with '\0'.
+ * \warning `conv` must be initialized by `iconv_open("UTF-8", "UTF-16LE")`
+ * \warning if `conv` is (size_t)-1, then function will return empty optional.
  */
 std::optional<std::string> bufferToString(std::istream &buffer, size_t size, iconv_t conv)
 {
-    return {};
+    if (conv == nullptr) {
+        conv = iconv_open("UTF-8", "UTF-16LE");
+    }
+
+    if (conv == reinterpret_cast<iconv_t>(-1)) {
+        return {};
+    }
+
+    if (size == 1) {
+        return std::string{};
+    }
+
+    std::string source(size, '\0');
+
+    // std::the string contains '\0' at the end (C style), which means that the actual buffer size
+    // is `size + 1`. We read `size + 1` bytes to check that the buffer ends with '\0'.
+    // '\0' is included in `size`, so we read `size` bytes.
+    buffer.read(source.data(), size);
+    check_stream(buffer);
+
+    // Check that the buffer ends with the two '\0'.
+    if ((*reinterpret_cast<uint16_t *>(&source.data()[size - 1])) != 0) {
+        return {};
+    }
+
+    return convert<char, char>(source, conv);
+}
+
+/*!
+ * \brief Get string from istream (binary)
+ * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
+ * \return on any error return false.
+ * \warning string in buffer must be ended with '\0'.
+ * \warning `conv` must be initialized by `iconv_open("UTF-16LE", "UTF-8")`
+ * \warning if `conv` is (size_t)-1, then function will return false.
+ */
+bool stringToBuffer(std::ostream &buffer, std::string &source, iconv_t conv)
+{
+    if (conv == nullptr) {
+        conv = iconv_open("UTF-16LE", "UTF-8");
+    }
+
+    if (conv == reinterpret_cast<iconv_t>(-1)) {
+        return false;
+    }
+
+    std::basic_string<char16_t> converted;
+    {
+        auto tmp = convert<char16_t, char>(source, conv);
+        if (tmp.has_value()) {
+            return false;
+        }
+        converted = std::move(tmp.value());
+    }
+
+    buffer.write(reinterpret_cast<char *>(converted.data()),
+                 (converted.size() + 1) * sizeof(char16_t));
+    check_stream_bool(buffer);
+
+    return true;
 }
 
 /*!
