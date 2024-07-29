@@ -111,7 +111,16 @@ std::optional<uint32_t> PRegParserPrivate::getSize(std::istream &stream)
 {
     uint32_t size;
 
-    must_present(size, bufferToUint32(stream));
+    {
+        auto tmp = bufferToIntegral<uint32_t, true>(stream);
+
+        if (!tmp.has_value()) {
+            return {};
+        }
+
+        size = *tmp;
+    }
+
     check_sym(stream, ';');
 
     return size;
