@@ -22,14 +22,7 @@
 #include <binary.hpp>
 #include <common.hpp>
 
-/*!
- * \brief Get string from istream (binary)
- * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
- * \return on any error return empty optional
- * \warning string in buffer must be ended with '\0'
- * \warning `conv` must be initialized by `iconv_open("UTF-8", "UTF-16LE")`
- * \warning if `conv` is (size_t)-1, then function will return empty optional
- */
+
 std::optional<std::string> bufferToString(std::istream &buffer, size_t size, iconv_t conv)
 {
     if (conv == nullptr) {
@@ -56,14 +49,6 @@ std::optional<std::string> bufferToString(std::istream &buffer, size_t size, ico
     return convert<char, char16_t>(source, conv);
 }
 
-/*!
- * \brief Put string from istream (binary)
- * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
- * \return Size of writed string. On any error return (size_t)-1
- * \warning string in buffer will be ended with '\0'
- * \warning `conv` must be initialized by `iconv_open("UTF-16LE", "UTF-8")`
- * \warning if `conv` is (size_t)-1, then function will return (size_t)-1
- */
 size_t stringToBuffer(std::ostream &buffer, const std::string &source, iconv_t conv)
 {
     if (conv == nullptr) {
@@ -90,14 +75,6 @@ size_t stringToBuffer(std::ostream &buffer, const std::string &source, iconv_t c
     return (converted.size() + 1) * sizeof(char16_t);
 }
 
-/*!
- * \brief Get strings from istream (binary)
- * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
- * \return on any error return empty optional
- * \warning every strings in buffer must be ended with '\0' (last included)
- * \warning `conv` must be initialized by `iconv_open("UTF-8", "UTF-16LE")`
- * \warning if `conv` is (size_t)-1, then function will return empty optional
- */
 std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, size_t size,
                                           iconv_t conv)
 {
@@ -135,14 +112,6 @@ std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, si
     return result;
 }
 
-/*!
- * \brief Put string from istream (binary)
- * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
- * \return Size of writed strings. On any error return (size_t)-1
- * \warning every string in buffer will be ended with '\0' (last included)
- * \warning `conv` must be initialized by `iconv_open("UTF-16LE", "UTF-8")`
- * \warning if `conv` is (size_t)-1, then function will return (size_t)-1
- */
 size_t StringsToBuffer(std::ostream &buffer, std::vector<std::string> &data,
                                           iconv_t conv)
 {
@@ -162,10 +131,6 @@ size_t StringsToBuffer(std::ostream &buffer, std::vector<std::string> &data,
     return size;
 }
 
-/*!
- * \brief Get vector of raw data from istream (binary)
- * \return on any error return empty optional
- */
 std::optional<std::vector<uint8_t>> bufferToVector(std::istream &buffer, size_t size)
 {
     std::vector<uint8_t> result;
@@ -177,10 +142,6 @@ std::optional<std::vector<uint8_t>> bufferToVector(std::istream &buffer, size_t 
     return result;
 }
 
-/*!
- * \brief Put vector of raw data to istream (binary)
- * \return on any error return false. On success return true.
- */
 bool vectorToBuffer(std::ostream &buffer, std::vector<uint8_t> &data)
 {
     buffer.write(reinterpret_cast<const char *>(data.data()), data.size());
@@ -188,9 +149,6 @@ bool vectorToBuffer(std::ostream &buffer, std::vector<uint8_t> &data)
     return true;
 }
 
-/*!
- * \brief Get uint16_t from istream (binary)
- */
 std::optional<uint16_t> bufferToUint16(std::istream &buffer)
 {
     unsigned char tmp[2];
@@ -202,9 +160,6 @@ std::optional<uint16_t> bufferToUint16(std::istream &buffer)
     return num;
 }
 
-/*!
- * \brief Get uint16_t from istream (binary) (invert byte order)
- */
 std::optional<uint16_t> bufferToUint16BE(std::istream &buffer)
 {
     unsigned char tmp[2];
@@ -216,9 +171,6 @@ std::optional<uint16_t> bufferToUint16BE(std::istream &buffer)
     return num;
 }
 
-/*!
- * \brief Get uint32_t from istream (binary)
- */
 std::optional<uint32_t> bufferToUint32(std::istream &buffer)
 {
     unsigned char tmp[4];
@@ -230,9 +182,6 @@ std::optional<uint32_t> bufferToUint32(std::istream &buffer)
     return num;
 }
 
-/*!
- * \brief Get uint32_t from istream (binary) (invert byte order)
- */
 std::optional<uint32_t> bufferToUint32BE(std::istream &buffer)
 {
     unsigned char tmp[4];
@@ -244,9 +193,6 @@ std::optional<uint32_t> bufferToUint32BE(std::istream &buffer)
     return num;
 }
 
-/*!
- * \brief Get uint64_t from istream (binary)
- */
 std::optional<uint64_t> bufferToUint64(std::istream &buffer)
 {
     unsigned char tmp[4];
@@ -261,9 +207,6 @@ std::optional<uint64_t> bufferToUint64(std::istream &buffer)
     return num;
 }
 
-/*!
- * \brief Get uint64_t from istream (binary) (invert byte order)
- */
 std::optional<uint64_t> bufferToUint64BE(std::istream &buffer)
 {
     unsigned char tmp[4];
@@ -278,9 +221,6 @@ std::optional<uint64_t> bufferToUint64BE(std::istream &buffer)
     return num;
 }
 
-/*!
- * \brief Put uint16_t into ostream (binary)
- */
 bool uint16ToBuffer(std::ostream &buffer, uint16_t data)
 {
     unsigned char tmp[2];
@@ -292,9 +232,6 @@ bool uint16ToBuffer(std::ostream &buffer, uint16_t data)
     return true;
 }
 
-/*!
- * \brief Put uint16_t into ostream (binary) (invert byte order)
- */
 bool uint16BEToBuffer(std::ostream &buffer, uint16_t data)
 {
     unsigned char tmp[2];
@@ -306,9 +243,6 @@ bool uint16BEToBuffer(std::ostream &buffer, uint16_t data)
     return true;
 }
 
-/*!
- * \brief Put uint32_t into ostream (binary)
- */
 bool uint32ToBuffer(std::ostream &buffer, uint32_t data)
 {
     unsigned char tmp[4];
@@ -322,9 +256,6 @@ bool uint32ToBuffer(std::ostream &buffer, uint32_t data)
     return true;
 }
 
-/*!
- * \brief Put uint32_t into ostream (binary) (invert byte order)
- */
 bool uint32BEToBuffer(std::ostream &buffer, uint32_t data)
 {
     unsigned char tmp[4];
@@ -338,9 +269,6 @@ bool uint32BEToBuffer(std::ostream &buffer, uint32_t data)
     return true;
 }
 
-/*!
- * \brief Put uint64_t into ostream (binary)
- */
 bool uint64ToBuffer(std::ostream &buffer, uint64_t data)
 {
     unsigned char tmp[8];
@@ -358,9 +286,6 @@ bool uint64ToBuffer(std::ostream &buffer, uint64_t data)
     return true;
 }
 
-/*!
- * \brief Put uint64_t into ostream (binary) (invert byte order)
- */
 bool uint64BEToBuffer(std::ostream &buffer, uint64_t data)
 {
     unsigned char tmp[8];
