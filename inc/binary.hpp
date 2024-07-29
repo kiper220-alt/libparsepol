@@ -79,9 +79,9 @@ template <typename T, bool LE = true,
 bool integralToBuffer(std::ostream &buffer, T num)
 {
     if constexpr (LE) {
-        num = leToNative<T>(num);
+        num = nativeToLe<T>(num);
     } else {
-        num = beToNative<T>(num);
+        num = nativeToBe<T>(num);
     }
 
     buffer.write(reinterpret_cast<char *>(&num), sizeof(T));
