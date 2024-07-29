@@ -40,12 +40,12 @@ std::optional<std::string> bufferToString(std::istream &buffer, size_t size,
 /*!
  * \brief Get string from istream (binary)
  * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
- * \return on any error return false.
+ * \return Size of writed string. On any error return (size_t)-1.
  * \warning string in buffer must be ended with '\0'.
  * \warning `conv` must be initialized by `iconv_open("UTF-16LE", "UTF-8")`
  * \warning if `conv` is (size_t)-1, then function will return false.
  */
-bool stringToBuffer(std::ostream &buffer, std::string &data, iconv_t conv = nullptr);
+size_t stringToBuffer(std::ostream &buffer, std::string &data, iconv_t conv = nullptr);
 
 /*!
  * \brief Get integral number from istream (binary)

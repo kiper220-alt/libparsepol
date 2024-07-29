@@ -67,14 +67,14 @@ std::optional<std::string> bufferToString(std::istream &buffer, size_t size, ico
  * \warning `conv` must be initialized by `iconv_open("UTF-16LE", "UTF-8")`
  * \warning if `conv` is (size_t)-1, then function will return false.
  */
-bool stringToBuffer(std::ostream &buffer, std::string &source, iconv_t conv)
+size_t stringToBuffer(std::ostream &buffer, std::string &source, iconv_t conv)
 {
     if (conv == nullptr) {
         conv = iconv_open("UTF-16LE", "UTF-8");
     }
 
     if (conv == reinterpret_cast<iconv_t>(-1)) {
-        return false;
+        return size_t(-1);
     }
 
     std::basic_string<char16_t> converted;
@@ -90,7 +90,7 @@ bool stringToBuffer(std::ostream &buffer, std::string &source, iconv_t conv)
                  (converted.size() + 1) * sizeof(char16_t));
     check_stream_bool(buffer);
 
-    return true;
+    return (converted.size() + 1) * sizeof(char16_t));
 }
 
 /*!
