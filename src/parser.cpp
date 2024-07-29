@@ -46,12 +46,22 @@ private:
      */
     std::optional<uint32_t> getSize(std::istream &stream);
     /*!
+     * \brief Convert binary data from stream to PolicyData
+     */
+    std::optional<PolicyData> getData(std::istream &stream, PolicyRegType type, uint32_t size);
+    /*!
      * \brief Check 32bit regex `([\x1\x2\x3\x4\x5\x6\x7\x8\x9\xA\xB\xC]);` and return first group
      * as Type
      */
     std::optional<PolicyRegType> getType(std::istream &stream);
     /*!
-     * \brief Matches regex `([\x20-\x7E]+);` and return first group as result
+     * \brief Matches regex `[\x20-\x5B\x5D-\x7E]+` and return
+     * string as result
+     */
+    std::optional<std::string> getKey(std::istream &stream);
+    /*!
+     * \brief Matches regex `((:?[\x20-\x5B\x5D-\x7E]+)(:?\x5C[\x20-\x5B\x5D-\x7E]+)+);` and return
+     * first group as result
      */
     std::optional<std::string> getKeypath(std::istream &stream);
     /*!
@@ -121,16 +131,21 @@ std::optional<uint32_t> PRegParserPrivate::getSize(std::istream &stream)
         size = *tmp;
     }
 
-    check_sym(stream, ';');
-
     return size;
 }
 
 std::optional<PolicyRegType> PRegParserPrivate::getType(std::istream &stream)
 {
     // identicaly to get size, but with convert to PolicyRegType.
-    uint32_t num;
-    must_present(num, getSize(stream));
+    uint8_t num;
+
+    {
+        auto tmp = bufferToIntegral<uint8_t, true>(stream);
+        if (!tmp.has_value()) {
+            return {};
+        }
+        num = *tmp;
+    }
 
     switch (static_cast<PolicyRegType>(num)) {
     case PolicyRegType::REG_SZ:
@@ -143,8 +158,8 @@ std::optional<PolicyRegType> PRegParserPrivate::getType(std::istream &stream)
     case PolicyRegType::REG_RESOURCE_LIST:
     case PolicyRegType::REG_FULL_RESOURCE_DESCRIPTOR:
     case PolicyRegType::REG_RESOURCE_REQUIREMENTS_LIST:
-    case PolicyRegType::REG_QWORD:
     case PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
+    case PolicyRegType::REG_QWORD_BIG_ENDIAN:
         break;
     default:
         return {};
@@ -152,54 +167,71 @@ std::optional<PolicyRegType> PRegParserPrivate::getType(std::istream &stream)
 
     return static_cast<PolicyRegType>(num);
 }
+std::optional<std::string> PRegParserPrivate::getKey(std::istream &stream)
+{
+    std::string key;
+    char16_t data;
 
+    stream.read(reinterpret_cast<char *>(&data), 2);
+    check_stream(stream);
+    data = leToNative(data);
+
+    while (data >= 0x20 && data <= 0x7E && data != 0x5C) {
+        key.push_back(static_cast<char>(data));
+
+        stream.read(reinterpret_cast<char *>(&data), 2);
+        check_stream(stream);
+        data = leToNative(data);
+    }
+
+    // Key from Keypath must contain 1 or more symbols.
+    if (key.empty()) {
+        return {};
+    }
+
+    return { std::move(key) };
+}
 std::optional<std::string> PRegParserPrivate::getKeypath(std::istream &stream)
 {
     std::string keyPath;
-    char data[2];
-    const uint8_t &sym = *data;
-    bool next_delimeter = false; // first character can'nt be delimeter
+    char16_t sym = 0;
 
-    stream.read(data, 2);
-    check_stream(stream);
+    while (true) {
+        auto key = getKey(stream);
 
-    // Key in specs [\x20-\x5B\x5D-\x7E](exclude '\'), when keypath include '\' like delimeter
-    while (sym >= 0x20 && sym <= 0x7E) {
-        // Key from Keypath must contain 1 or more symbols.
-        if (sym == 0x5C) {
-            if (!next_delimeter) {
-                return {};
-            }
-            // Next character cannot be delimeter
-            next_delimeter = false;
-        } else {
-            // Next character can be delimeter
-            next_delimeter = true;
+        if (!key.has_value()) {
+            return {};
         }
 
-        keyPath.push_back(sym);
+        keyPath.append(*key);
 
-        stream.read(data, 2);
+        stream.read(reinterpret_cast<char *>(&sym), 2);
         check_stream(stream);
+
+        // End of Keypath
+        if (sym == 0) {
+            break;
+        }
+
+        if (sym != 0x5C) {
+            return {};
+        }
     }
 
-    if (sym != ';' || !keyPath.empty()) {
-        return {};
-    }
     return { keyPath };
 }
 
 std::optional<std::string> PRegParserPrivate::getValue(std::istream &stream)
 {
     std::string result;
-    char data[2];
-    const uint8_t &sym = *data;
+    char16_t data;
 
-    stream.read(data, 2);
+    stream.read(reinterpret_cast<char *>(&data), 2);
     check_stream(stream);
+    data = leToNative(data);
 
     // Key in specs [\x20-\x5B\x5D-\x7E](exclude '\'), when keypath include '\' like delimeter
-    while (sym >= 0x20 && sym <= 0x7E) {
+    while (data >= 0x20 && data <= 0x7E) {
         // Key from Keypath must contain 1 or more symbols.
 
         // Check maximum value length
@@ -207,38 +239,81 @@ std::optional<std::string> PRegParserPrivate::getValue(std::istream &stream)
             return {};
         }
 
-        result.push_back(sym);
+        result.push_back(data);
 
-        stream.read(data, 2);
+        stream.read(reinterpret_cast<char *>(&data), 2);
         check_stream(stream);
+        data = leToNative(data);
     }
 
-    if (sym != ';' || !result.empty()) {
+    if (data != 0 || !result.empty()) {
         return {};
     }
 
     return { std::move(result) };
 }
 
+std::optional<PolicyData> getData(std::istream &stream, PolicyRegType type, uint32_t size)
+{
+    switch (type) {
+    case PolicyRegType::REG_NONE:
+        return {};
+    case PolicyRegType::REG_SZ:
+    case PolicyRegType::REG_EXPAND_SZ:
+    case PolicyRegType::REG_LINK:
+        return { bufferToString(stream, size) };
+
+    case PolicyRegType::REG_BINARY:
+        return { bufferToVector(stream, size) };
+
+    case PolicyRegType::REG_DWORD_LITTLE_ENDIAN:
+        return { bufferToIntegral<uint32_t, true>(stream) };
+    case PolicyRegType::REG_DWORD_BIG_ENDIAN:
+        return { bufferToIntegral<uint32_t, false>(stream) };
+
+    case PolicyRegType::REG_MULTI_SZ:
+    case PolicyRegType::REG_RESOURCE_LIST:
+    case PolicyRegType::REG_FULL_RESOURCE_DESCRIPTOR: // ????
+    case PolicyRegType::REG_RESOURCE_REQUIREMENTS_LIST:
+        return { bufferToStrings(stream, size) };
+
+    case PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
+        return { bufferToIntegral<uint64_t, true>(stream) };
+    case PolicyRegType::REG_QWORD_BIG_ENDIAN:
+        return { bufferToIntegral<uint64_t, false>(stream) };
+        break;
+    }
+    return {};
+}
+
 std::optional<PolicyInstruction> PRegParserPrivate::getInstruction(std::istream &stream)
 {
     PolicyInstruction instruction;
-    char sym[2];
     uint32_t dataSize;
 
-    stream.read(sym, 2);
-    check_stream(stream);
-
-    if (*sym != '[') {
-        return {};
-    }
+    check_sym(stream, '[');
 
     must_present(instruction.key, getKeypath(stream));
+
+    check_sym(stream, ';');
+
     must_present(instruction.value, getValue(stream));
+
+    check_sym(stream, ';');
+
     must_present(instruction.type, getType(stream));
+
+    check_sym(stream, ';');
+
     must_present(dataSize, getSize(stream));
 
-    return {};
+    check_sym(stream, ';');
+
+    must_present(instruction.data, getData(stream, instruction.type, dataSize));
+
+    check_sym(stream, ']');
+
+    return instruction;
 }
 
 std::unique_ptr<PRegParser> createPregParser()

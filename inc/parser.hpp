@@ -52,11 +52,13 @@ enum class PolicyRegType {
     REG_RESOURCE_REQUIREMENTS_LIST = 10,
 
     /* 64-bit number */
-    REG_QWORD = 11,
-    REG_QWORD_LITTLE_ENDIAN = 12,
+    REG_QWORD_LITTLE_ENDIAN = 11,
+    REG_QWORD_BIG_ENDIAN = 12,
 };
 
-typedef std::variant<std::string, std::vector<uint8_t>, uint32_t, uint64_t> PolicyData;
+typedef std::variant<std::string, std::vector<std::string>, std::vector<uint8_t>, uint32_t,
+                     uint64_t>
+        PolicyData;
 
 typedef struct PolicyInstruction
 {
