@@ -17,9 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <parser.hpp>
 #include <binary.hpp>
 #include <common.hpp>
+#include <parser.hpp>
 
 /*!
  * \brief Valid POL Registery file header

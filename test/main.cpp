@@ -19,8 +19,10 @@
  */
 #include <iostream>
 #include <parser.hpp>
+
 #include "./binary.hpp"
 #include "./endian.hpp"
+
 #include <iconv.h>
 
 int main()

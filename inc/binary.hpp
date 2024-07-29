@@ -21,11 +21,11 @@
 #ifndef PREGPARSER_BINARY
 #define PREGPARSER_BINARY
 
-#include <iconv.h>
-#include <vector>
-#include <optional>
 #include <cinttypes>
 #include <iostream>
+#include <optional>
+#include <vector>
+
 #include <encoding.hpp>
 
 /*!

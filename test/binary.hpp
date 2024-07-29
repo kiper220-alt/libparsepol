@@ -20,12 +20,11 @@
 #ifndef PREGPARSER_TEST_BINARY
 #define PREGPARSER_TEST_BINARY
 
-#include <binary.hpp>
-#include <iostream>
-#include <cinttypes>
-#include <sstream>
 #include <algorithm>
+#include <binary.hpp>
 #include <cassert>
+#include <iostream>
+#include <sstream>
 
 void testBufferToIntegral()
 {

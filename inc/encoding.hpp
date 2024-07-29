@@ -21,13 +21,11 @@
 #ifndef PREGPARSER_ENCODING
 #define PREGPARSER_ENCODING
 
-#include <type_traits>
-#include <tuple>
 #include <array>
-#include <cinttypes>
+#include <memory>
+#include <type_traits>
+
 #include <iconv.h>
-#include <cuchar>
-#include <bit>
 
 // C++ before C++20 is not support endianess. Becouse of that, we need to
 // provide our own implementation

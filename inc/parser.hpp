@@ -20,12 +20,12 @@
 #ifndef PREGPARSER_PARSER
 #define PREGPARSER_PARSER
 
-#include <string>
-#include <vector>
-#include <optional>
-#include <variant>
 #include <istream>
 #include <memory>
+#include <optional>
+#include <string>
+#include <variant>
+#include <vector>
 
 enum class PolicyRegType {
     REG_NONE,
