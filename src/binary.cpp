@@ -22,7 +22,6 @@
 #include <binary.hpp>
 #include <common.hpp>
 
-
 std::optional<std::string> bufferToString(std::istream &buffer, size_t size, iconv_t conv)
 {
     if (conv == nullptr) {
@@ -33,16 +32,16 @@ std::optional<std::string> bufferToString(std::istream &buffer, size_t size, ico
         return {};
     }
 
-    std::basic_string<char16_t> source(size, '\0');
+    std::basic_string<char16_t> source((size / 2) - 1, '\0');
 
     // std::the string contains '\0' at the end (C style), which means that the actual buffer size
-    // is `size + 1`. We read `size + 1` bytes to check that the buffer ends with '\0'.
+    // is `size`. We read `size` bytes to check that the buffer ends with '\0'.
     // '\0' is included in `size`, so we read `size` bytes.
-    buffer.read(reinterpret_cast<char*>(source.data()), (size + 1) * sizeof(char16_t));
+    buffer.read(reinterpret_cast<char *>(source.data()), size);
     check_stream(buffer);
 
     // Check that the buffer ends with the two '\0'.
-    if (source.data()[size] != 0) {
+    if (source.data()[(size / 2) - 1] != 0) {
         return {};
     }
 
@@ -76,7 +75,7 @@ size_t stringToBuffer(std::ostream &buffer, const std::string &source, iconv_t c
 }
 
 std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, size_t size,
-                                          iconv_t conv)
+                                                        iconv_t conv)
 {
     std::vector<std::string> result;
     std::basic_string<char16_t> tmp;
@@ -86,11 +85,11 @@ std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, si
     // std::string contains '\0' at the end (C style), which means that the actual buffer size
     // is `size + 1`. We read `size + 1` bytes to check that the buffer ends with '\0'.
     // '\0' is included in `size`, so we read `size` bytes.
-    tmp.resize(size);
-    buffer.read(reinterpret_cast<char*>(tmp.data()), (size + 1) * sizeof(char16_t));
+    tmp.resize(size - 1);
+    buffer.read(reinterpret_cast<char *>(tmp.data()), size);
     check_stream(buffer);
-    
-    while(found != tmp.size() + 1) {
+
+    while (found != tmp.size() + 1) {
         found = tmp.find(char16_t(0), current);
 
         if (found == std::string::npos) {
@@ -112,8 +111,7 @@ std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, si
     return result;
 }
 
-size_t StringsToBuffer(std::ostream &buffer, std::vector<std::string> &data,
-                                          iconv_t conv)
+size_t StringsToBuffer(std::ostream &buffer, std::vector<std::string> &data, iconv_t conv)
 {
     size_t size = 0;
 
@@ -124,7 +122,7 @@ size_t StringsToBuffer(std::ostream &buffer, std::vector<std::string> &data,
         if (tmp == size_t(-1)) {
             return size_t(-1);
         }
-        
+
         size += tmp;
     }
 
