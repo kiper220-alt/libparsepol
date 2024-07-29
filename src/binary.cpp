@@ -43,20 +43,20 @@ std::optional<std::string> bufferToString(std::istream &buffer, size_t size, ico
         return std::string{};
     }
 
-    std::string source(size, '\0');
+    std::basic_string<char16_t> source(size, '\0');
 
     // std::the string contains '\0' at the end (C style), which means that the actual buffer size
     // is `size + 1`. We read `size + 1` bytes to check that the buffer ends with '\0'.
     // '\0' is included in `size`, so we read `size` bytes.
-    buffer.read(source.data(), size);
+    buffer.read(reinterpret_cast<char*>(source.data()), size);
     check_stream(buffer);
 
     // Check that the buffer ends with the two '\0'.
-    if ((*reinterpret_cast<uint16_t *>(&source.data()[size - 1])) != 0) {
+    if (source.data()[size] != 0) {
         return {};
     }
 
-    return convert<char, char>(source, conv);
+    return convert<char, char16_t>(source, conv);
 }
 
 /*!
