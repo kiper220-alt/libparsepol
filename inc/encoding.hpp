@@ -140,9 +140,9 @@ convert(string_const_iterator<source_char> begin, string_const_iterator<source_c
     char *inbuf = reinterpret_cast<char *>(const_cast<source_char *>(&*begin));
     size_t inbytesLeft = std::distance(begin, end) * sizeof(source_char);
 
-    std::array<char, 512> temp;
-    char *outbuf = temp.data();
-    size_t outbytesLeft = temp.size();
+    auto temp = std::make_unique<std::array<char, 512>>();
+    char *outbuf = temp->data();
+    size_t outbytesLeft = temp->size();
 
     while (inbytesLeft > 0) {
         auto ret = iconv(conv, &inbuf, &inbytesLeft, &outbuf, &outbytesLeft);
@@ -150,10 +150,10 @@ convert(string_const_iterator<source_char> begin, string_const_iterator<source_c
             return {};
         }
 
-        result.append(reinterpret_cast<target_char *>(temp.data()),
+        result.append(reinterpret_cast<target_char *>(temp->data()),
                       reinterpret_cast<target_char *>(outbuf));
-        outbuf = temp.data();
-        outbytesLeft = temp.size();
+        outbuf = temp->data();
+        outbytesLeft = temp->size();
     }
 
     return result;
