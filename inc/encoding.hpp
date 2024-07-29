@@ -123,16 +123,22 @@ template <typename T,
 inline constexpr T nativeToLe = leToNative<T>;
 
 /*!
+ * \brief Helper alias for string iterator(just minimize code size)
+ */
+template<class T>
+using string_const_iterator = typename std::basic_string<T>::const_iterator;
+
+/*!
  * \brief Convert string from one encoding to another using iconv
  */
 template <typename target_char, typename source_char>
 inline std::optional<std::basic_string<target_char>>
-convert(const std::basic_string<source_char> &source, iconv_t conv)
+convert(string_const_iterator<source_char> begin, string_const_iterator<source_char> end, iconv_t conv)
 {
     std::basic_string<target_char> result = {};
 
-    char *inbuf = reinterpret_cast<char *>(const_cast<source_char *>(source.data()));
-    size_t inbytesLeft = source.size() * sizeof(source_char);
+    char *inbuf = reinterpret_cast<char *>(const_cast<source_char *>(&*begin));
+    size_t inbytesLeft = std::distance(begin, end) * sizeof(source_char);
 
     std::array<char, 512> temp;
     char *outbuf = temp.data();
@@ -151,6 +157,16 @@ convert(const std::basic_string<source_char> &source, iconv_t conv)
     }
 
     return result;
+}
+
+/*!
+ * \brief Convert string from one encoding to another using iconv
+ */
+template <typename target_char, typename source_char>
+inline std::optional<std::basic_string<target_char>>
+convert(const std::basic_string<source_char> &source, iconv_t conv)
+{
+    return convert<target_char, source_char>(source.cbegin(), source.cend(), conv);
 }
 
 #endif // PREGPARSER_ENCODING
