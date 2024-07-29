@@ -28,6 +28,14 @@
         }                            \
         target = *data;              \
     }
+#define must_present_bool(target, source) \
+    {                                     \
+        auto data = source;               \
+        if (!data.has_value()) {          \
+            return false;                 \
+        }                                 \
+        target = *data;                   \
+    }
 
 #define check_stream(target) \
     {                        \
