@@ -24,10 +24,10 @@
 /*!
  * \brief Get string from istream (binary)
  * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
- * \return on any error return empty optional.
- * \warning string in buffer must be ended with '\0'.
+ * \return on any error return empty optional
+ * \warning string in buffer must be ended with '\0'
  * \warning `conv` must be initialized by `iconv_open("UTF-8", "UTF-16LE")`
- * \warning if `conv` is (size_t)-1, then function will return empty optional.
+ * \warning if `conv` is (size_t)-1, then function will return empty optional
  */
 std::optional<std::string> bufferToString(std::istream &buffer, size_t size, iconv_t conv)
 {
@@ -56,14 +56,14 @@ std::optional<std::string> bufferToString(std::istream &buffer, size_t size, ico
 }
 
 /*!
- * \brief Get string from istream (binary)
+ * \brief Put string from istream (binary)
  * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
- * \return on any error return false.
- * \warning string in buffer must be ended with '\0'.
+ * \return Size of writed string. On any error return (size_t)-1
+ * \warning string in buffer will be ended with '\0'
  * \warning `conv` must be initialized by `iconv_open("UTF-16LE", "UTF-8")`
- * \warning if `conv` is (size_t)-1, then function will return false.
+ * \warning if `conv` is (size_t)-1, then function will return (size_t)-1
  */
-size_t stringToBuffer(std::ostream &buffer, std::string &source, iconv_t conv)
+size_t stringToBuffer(std::ostream &buffer, const std::string &source, iconv_t conv)
 {
     if (conv == nullptr) {
         conv = iconv_open("UTF-16LE", "UTF-8");
@@ -86,7 +86,105 @@ size_t stringToBuffer(std::ostream &buffer, std::string &source, iconv_t conv)
                  (converted.size() + 1) * sizeof(char16_t));
     check_stream_bool(buffer);
 
-    return (converted.size() + 1) * sizeof(char16_t));
+    return (converted.size() + 1) * sizeof(char16_t);
+}
+
+/*!
+ * \brief Get strings from istream (binary)
+ * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
+ * \return on any error return empty optional
+ * \warning every strings in buffer must be ended with '\0' (last included)
+ * \warning `conv` must be initialized by `iconv_open("UTF-8", "UTF-16LE")`
+ * \warning if `conv` is (size_t)-1, then function will return empty optional
+ */
+std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, size_t size,
+                                          iconv_t conv)
+{
+    std::vector<std::string> result;
+    std::basic_string<char16_t> tmp;
+    size_t current = 0;
+    size_t found = 0;
+
+    // std::string contains '\0' at the end (C style), which means that the actual buffer size
+    // is `size + 1`. We read `size + 1` bytes to check that the buffer ends with '\0'.
+    // '\0' is included in `size`, so we read `size` bytes.
+    tmp.resize(size);
+    buffer.read(reinterpret_cast<char*>(tmp.data()), (size + 1) * sizeof(char16_t));
+    check_stream(buffer);
+    
+    while(found != tmp.size() + 1) {
+        found = tmp.find(char16_t(0), current);
+
+        if (found == std::string::npos) {
+            return {};
+        }
+
+        {
+            auto tmp2 = convert<char, char16_t>(tmp.cbegin() + current, tmp.cbegin() + found, conv);
+            if (!tmp2.has_value()) {
+                return {};
+            }
+            result.push_back(std::move(*tmp2));
+        }
+
+        current = found + 1;
+        found = current;
+    }
+
+    return result;
+}
+
+/*!
+ * \brief Put string from istream (binary)
+ * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
+ * \return Size of writed strings. On any error return (size_t)-1
+ * \warning every string in buffer will be ended with '\0' (last included)
+ * \warning `conv` must be initialized by `iconv_open("UTF-16LE", "UTF-8")`
+ * \warning if `conv` is (size_t)-1, then function will return (size_t)-1
+ */
+size_t StringsToBuffer(std::ostream &buffer, std::vector<std::string> &data,
+                                          iconv_t conv)
+{
+    size_t size = 0;
+
+    for (const auto &str : data) {
+        auto tmp = stringToBuffer(buffer, str, conv);
+
+        // On any error return (size_t)-1
+        if (tmp == size_t(-1)) {
+            return size_t(-1);
+        }
+        
+        size += tmp;
+    }
+
+    return size;
+}
+
+/*!
+ * \brief Get vector of raw data from istream (binary)
+ * \return on any error return empty optional
+ */
+std::optional<std::vector<uint8_t>> bufferToVector(std::istream &buffer, size_t size)
+{
+    std::vector<uint8_t> result;
+    result.resize(size);
+
+    buffer.read(reinterpret_cast<char *>(result.data()), size);
+    check_stream(buffer);
+
+    return result;
+}
+
+/*!
+ * \brief Put vector of raw data to istream (binary)
+ * \return on any error return false. On success return true.
+ */
+bool vectorToBuffer(std::ostream &buffer, std::vector<uint8_t> &data)
+{
+    buffer.write(reinterpret_cast<const char *>(data.data()), data.size());
+    check_stream_bool(buffer);
+    return true;
 }
 
 /*!
