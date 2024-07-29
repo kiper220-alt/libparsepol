@@ -48,7 +48,6 @@ std::optional<std::string> bufferToString(std::istream &buffer, size_t size,
  */
 size_t stringToBuffer(std::ostream &buffer, const std::string &data, iconv_t conv = nullptr);
 
-
 /*!
  * \brief Get strings from istream (binary)
  * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
@@ -59,7 +58,6 @@ size_t stringToBuffer(std::ostream &buffer, const std::string &data, iconv_t con
  */
 std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, size_t size,
                                           iconv_t conv = nullptr);
-
 /*!
  * \brief Put string from istream (binary)
  * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
@@ -70,7 +68,6 @@ std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, si
  */
 size_t StringsToBuffer(std::ostream &buffer, std::vector<std::string> &data,
                                           iconv_t conv = nullptr);
-
 /*!
  * \brief Get vector of raw data from istream (binary)
  * \return on any error return empty optional
