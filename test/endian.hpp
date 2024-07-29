@@ -17,16 +17,34 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef PREGPARSER_TEST_ENDIAN
+#define PREGPARSER_TEST_ENDIAN
+
+#include <encoding.hpp>
 #include <iostream>
-#include <parser.hpp>
-#include "./binary.hpp"
-#include "./endian.hpp"
-#include <iconv.h>
+#include <cinttypes>
+#include <sstream>
+#include <algorithm>
+#include <cassert>
 
-int main()
+void testEndian()
 {
-    testEndian();
-    testBinary();
 
-    return 0;
+    uint8_t num1 = 0x12;
+    assert(byteswap<uint8_t>(num1) == 0x12);
+    std::cout << "byteswap<uint8_t>: OK" << std::endl;
+
+    uint16_t num2 = 0x1234;
+    assert(byteswap<uint16_t>(num2) == 0x3412);
+    std::cout << "byteswap<uint16_t>: OK" << std::endl;
+
+    uint32_t num3 = 0x12345678;
+    assert(byteswap<uint32_t>(num3) == 0x78563412);
+    std::cout << "byteswap<uint32_t>: OK" << std::endl;
+
+    uint64_t num4 = 0x123456789ABCDEF0;
+    assert(byteswap<uint64_t>(num4) == 0xF0DEBC9A78563412);
+    std::cout << "byteswap<uint64_t>: OK" << std::endl;
 }
+
+#endif // PREGPARSER_TEST_ENDIAN
