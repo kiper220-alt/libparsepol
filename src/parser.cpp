@@ -38,11 +38,12 @@ class PRegParserPrivate : public PRegParser
 {
 private:
     /*!
-     * \brief Check regex `\x50\x52\x65\x67`
+     * \brief Check regex `\x50\x52\x65\x67\x01\x00\x00\x00`
      */
     bool parseHeader(std::istream &stream);
     /*!
-     * \brief Check regex `(.{4});` and return first group as uint32_t
+     * \brief Check regex `(.{4})` and return first group as uint32_t (LE, it will be converted to
+     * native)
      */
     std::optional<uint32_t> getSize(std::istream &stream);
     /*!
@@ -50,27 +51,29 @@ private:
      */
     std::optional<PolicyData> getData(std::istream &stream, PolicyRegType type, uint32_t size);
     /*!
-     * \brief Check 32bit regex `([\x1\x2\x3\x4\x5\x6\x7\x8\x9\xA\xB\xC]);` and return first group
-     * as Type
+     * \brief Check 32bit LE regex `([\x1\x2\x3\x4\x5\x6\x7\x8\x9\xA\xB\xC])` and return first
+     * group as Type
      */
     std::optional<PolicyRegType> getType(std::istream &stream);
     /*!
-     * \brief Matches regex `[\x20-\x5B\x5D-\x7E]+` and return
-     * string as result
+     * \brief Matches regex `([\x20-\x5B\x5D-\x7E]\x00)+` and return
+     * string as result (UTF-16LE will be converted to UTF-8)
      */
     std::optional<std::string> getKey(std::istream &stream);
     /*!
-     * \brief Matches regex `((:?[\x20-\x5B\x5D-\x7E]+)(:?\x5C[\x20-\x5B\x5D-\x7E]+)+);` and return
-     * first group as result
+     * \brief Matches regex
+     * `((:?([\x20-\x5B\x5D-\x7E]\x00)+)(:?\x5C\x00([\x20-\x5B\x5D-\x7E]\x00)+)+)` and return first
+     * group as result
      */
     std::optional<std::string> getKeypath(std::istream &stream);
     /*!
-     * \brief Matches regex `([\x20-\x7E]{1,259});` and return first group as result
+     * \brief Matches regex `((:?[\x20-\x7E]\x00){1,259})` and return first group as result
+     * (UTF-16LE will be converted to UTF-8)
      */
     std::optional<std::string> getValue(std::istream &stream);
     /*!
-     * \brief Matches ABNF `'[' KeyPath ';' Value ';' Type ';' Size ';' Data ']'` and return reduced
-     * structure
+     * \brief Matches ABNF `LBracket KeyPath SC Value SC Type SC Size SC Data RBracket`,
+     * where LBracket `\x5B\x00`, RBracket `\x5D\x00`, SC `\x3B\x00`. Return reduced structure
      */
     std::optional<PolicyInstruction> getInstruction(std::istream &stream);
 
