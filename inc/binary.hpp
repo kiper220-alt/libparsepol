@@ -34,17 +34,16 @@
  * \return on any error return empty optional
  * \warning string in buffer must be ended with '\0'
  * \warning `conv` must be initialized by `iconv_open("UTF-8", "UTF-16LE")`
- * \warning if `conv` is (size_t)-1, then function will return empty optional
+ * \warning if `conv` is (size_t)-1, then function will throw std::runtime_error
  */
-std::optional<std::string> bufferToString(std::istream &buffer, size_t size,
-                                          iconv_t conv = nullptr);
+std::string bufferToString(std::istream &buffer, size_t size, iconv_t conv = nullptr);
 /*!
  * \brief Put string from istream (binary)
  * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
  * \return Size of writed string. On any error return (size_t)-1
  * \warning string in buffer will be ended with '\0'
  * \warning `conv` must be initialized by `iconv_open("UTF-16LE", "UTF-8")`
- * \warning if `conv` is (size_t)-1, then function will return (size_t)-1
+ * \warning if `conv` is (size_t)-1, then function will throw std::runtime_error
  */
 size_t stringToBuffer(std::ostream &buffer, const std::string &data, iconv_t conv = nullptr);
 
@@ -54,31 +53,28 @@ size_t stringToBuffer(std::ostream &buffer, const std::string &data, iconv_t con
  * \return on any error return empty optional
  * \warning every strings in buffer must be ended with '\0' (last included)
  * \warning `conv` must be initialized by `iconv_open("UTF-8", "UTF-16LE")`
- * \warning if `conv` is (size_t)-1, then function will return empty optional
+ * \warning if `conv` is (size_t)-1, then function will throw std::runtime_error
  */
-std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, size_t size,
-                                                        iconv_t conv = nullptr);
+std::vector<std::string> bufferToStrings(std::istream &buffer, size_t size, iconv_t conv = nullptr);
 /*!
  * \brief Put string from istream (binary)
  * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
  * \return Size of writed strings. On any error return (size_t)-1
  * \warning every string in buffer will be ended with '\0' (last included)
  * \warning `conv` must be initialized by `iconv_open("UTF-16LE", "UTF-8")`
- * \warning if `conv` is (size_t)-1, then function will return (size_t)-1
+ * \warning if `conv` is (size_t)-1, then function will throw std::runtime_error
  */
 size_t stringsToBuffer(std::ostream &buffer, const std::vector<std::string> &data,
                        iconv_t conv = nullptr);
 /*!
  * \brief Get vector of raw data from istream (binary)
- * \return on any error return empty optional
  */
-std::optional<std::vector<uint8_t>> bufferToVector(std::istream &buffer, size_t size);
+std::vector<uint8_t> bufferToVector(std::istream &buffer, size_t size);
 
 /*!
  * \brief Put vector of raw data to istream (binary)
- * \return on any error return false. On success return true.
  */
-bool vectorToBuffer(std::ostream &buffer, const std::vector<uint8_t> &data);
+void vectorToBuffer(std::ostream &buffer, const std::vector<uint8_t> &data);
 
 /*!
  * \brief Get integral number from istream (binary)
@@ -86,13 +82,13 @@ bool vectorToBuffer(std::ostream &buffer, const std::vector<uint8_t> &data);
 template <typename T, bool LE = true,
           typename = std::enable_if_t<std::is_integral_v<T>
                                       && sizeof(T) <= sizeof(unsigned long long)>>
-std::optional<T> bufferToIntegral(std::istream &buffer)
+T bufferToIntegral(std::istream &buffer)
 {
     T num = 0;
 
     buffer.read(reinterpret_cast<char *>(&num), sizeof(T));
     if (buffer.fail()) {
-        return {};
+        throw std::runtime_error("can't read buffer");
     }
     if constexpr (LE) {
         return leToNative<T>(num);
@@ -109,7 +105,7 @@ std::optional<T> bufferToIntegral(std::istream &buffer)
 template <typename T, bool LE = true,
           typename = std::enable_if_t<std::is_integral_v<T>
                                       && sizeof(T) <= sizeof(unsigned long long)>>
-bool integralToBuffer(std::ostream &buffer, T num)
+void integralToBuffer(std::ostream &buffer, T num)
 {
     if constexpr (LE) {
         num = nativeToLe<T>(num);
@@ -119,9 +115,7 @@ bool integralToBuffer(std::ostream &buffer, T num)
 
     buffer.write(reinterpret_cast<char *>(&num), sizeof(T));
     if (buffer.fail()) {
-        return false;
+        throw std::runtime_error("can't read buffer");
     }
-
-    return true;
 }
 #endif // PREGPARSER_BINARY

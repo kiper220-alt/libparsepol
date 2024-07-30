@@ -22,14 +22,14 @@
 #include <binary.hpp>
 #include <common.hpp>
 
-std::optional<std::string> bufferToString(std::istream &buffer, size_t size, iconv_t conv)
+std::string bufferToString(std::istream &buffer, size_t size, iconv_t conv)
 {
     if (conv == nullptr) {
         conv = iconv_open("UTF-8", "UTF-16LE");
     }
 
     if (conv == reinterpret_cast<iconv_t>(-1)) {
-        return {};
+        throw std::runtime_error("can't initialize iconv");
     }
 
     std::basic_string<char16_t> source((size / 2) - 1, '\0');
@@ -42,7 +42,7 @@ std::optional<std::string> bufferToString(std::istream &buffer, size_t size, ico
 
     // Check that the buffer ends with the two '\0'.
     if (source.data()[(size / 2) - 1] != 0) {
-        return {};
+        throw std::runtime_error("corrupted PReg file.");
     }
 
     return convert<char, char16_t>(source, conv);
@@ -55,34 +55,26 @@ size_t stringToBuffer(std::ostream &buffer, const std::string &source, iconv_t c
     }
 
     if (conv == reinterpret_cast<iconv_t>(-1)) {
-        return size_t(-1);
+        throw std::runtime_error("can't initialize iconv");
     }
 
-    std::basic_string<char16_t> converted;
-    {
-        auto tmp = convert<char16_t, char>(source, conv);
-        if (!tmp.has_value()) {
-            return false;
-        }
-        converted = std::move(tmp.value());
-    }
+    std::basic_string<char16_t> converted = convert<char16_t, char>(source, conv);
 
     buffer.write(reinterpret_cast<char *>(converted.data()),
                  (converted.size() + 1) * sizeof(char16_t));
-    check_stream_bool(buffer);
+    check_stream(buffer);
 
     return (converted.size() + 1) * sizeof(char16_t);
 }
 
-std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, size_t size,
-                                                        iconv_t conv)
+std::vector<std::string> bufferToStrings(std::istream &buffer, size_t size, iconv_t conv)
 {
     if (conv == nullptr) {
         conv = iconv_open("UTF-8", "UTF-16LE");
     }
 
     if (conv == reinterpret_cast<iconv_t>(-1)) {
-        return {};
+        throw std::runtime_error("can't initialize iconv");
     }
 
     std::vector<std::string> result;
@@ -108,13 +100,8 @@ std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, si
             }
         }
 
-        {
-            auto tmp2 = convert<char, char16_t>(tmp.cbegin() + current, tmp.cbegin() + found, conv);
-            if (!tmp2.has_value()) {
-                return {};
-            }
-            result.push_back(std::move(*tmp2));
-        }
+        result.push_back(
+                convert<char, char16_t>(tmp.cbegin() + current, tmp.cbegin() + found, conv));
 
         current = found + 1;
         found = current;
@@ -129,19 +116,13 @@ size_t stringsToBuffer(std::ostream &buffer, const std::vector<std::string> &dat
 
     for (const auto &str : data) {
         auto tmp = stringToBuffer(buffer, str, conv);
-
-        // On any error return (size_t)-1
-        if (tmp == size_t(-1)) {
-            return size_t(-1);
-        }
-
         size += tmp;
     }
 
     return size;
 }
 
-std::optional<std::vector<uint8_t>> bufferToVector(std::istream &buffer, size_t size)
+std::vector<uint8_t> bufferToVector(std::istream &buffer, size_t size)
 {
     std::vector<uint8_t> result;
     result.resize(size);
@@ -152,9 +133,8 @@ std::optional<std::vector<uint8_t>> bufferToVector(std::istream &buffer, size_t 
     return result;
 }
 
-bool vectorToBuffer(std::ostream &buffer, const std::vector<uint8_t> &data)
+void vectorToBuffer(std::ostream &buffer, const std::vector<uint8_t> &data)
 {
     buffer.write(reinterpret_cast<const char *>(data.data()), data.size());
-    check_stream_bool(buffer);
-    return true;
+    check_stream(buffer);
 }

@@ -43,53 +43,53 @@ private:
     /*!
      * \brief Check regex `\x50\x52\x65\x67\x01\x00\x00\x00`
      */
-    bool parseHeader(std::istream &stream);
+    void parseHeader(std::istream &stream);
     /*!
      * \brief Check regex `(.{4})` and return first group as uint32_t (LE, it will be converted to
      * native)
      */
-    std::optional<uint32_t> getSize(std::istream &stream);
+    uint32_t getSize(std::istream &stream);
     /*!
      * \brief Convert binary data from stream to PolicyData
      */
-    std::optional<PolicyData> getData(std::istream &stream, PolicyRegType type, uint32_t size);
+    PolicyData getData(std::istream &stream, PolicyRegType type, uint32_t size);
     /*!
      * \brief Check 32bit LE regex `([\x1\x2\x3\x4\x5\x6\x7\x8\x9\xA\xB\xC])` and return first
      * group as Type
      */
-    std::optional<PolicyRegType> getType(std::istream &stream);
+    PolicyRegType getType(std::istream &stream);
     /*!
      * \brief Matches regex `([\x20-\x5B\x5D-\x7E]\x00)+` and return
      * string as result (UTF-16LE will be converted to UTF-8)
      */
-    std::optional<std::string> getKey(std::istream &stream);
+    std::string getKey(std::istream &stream);
     /*!
      * \brief Matches regex
      * `((:?([\x20-\x5B\x5D-\x7E]\x00)+)(:?\x5C\x00([\x20-\x5B\x5D-\x7E]\x00)+)+)` and return first
      * group as result
      */
-    std::optional<std::string> getKeypath(std::istream &stream);
+    std::string getKeypath(std::istream &stream);
     /*!
      * \brief Matches regex `((:?[\x20-\x7E]\x00){1,259})` and return first group as result
      * (UTF-16LE will be converted to UTF-8)
      */
-    std::optional<std::string> getValue(std::istream &stream);
+    std::string getValue(std::istream &stream);
     /*!
      * \brief Matches ABNF `LBracket KeyPath SC Value SC Type SC Size SC Data RBracket`,
      * where LBracket `\x5B\x00`, RBracket `\x5D\x00`, SC `\x3B\x00`. Return reduced structure
      */
-    std::optional<PolicyInstruction> getInstruction(std::istream &stream);
+    PolicyInstruction getInstruction(std::istream &stream);
 
     /*!
      * \brief Put `\x50\x52\x65\x67\x01\x00\x00\x00` into stream
      */
-    bool writeHeader(std::ostream &stream);
+    void writeHeader(std::ostream &stream);
     /*!
      * \brief Put instruction, with ABNF
      * `LBracket KeyPath SC Value SC Type SC Size SC Data RBracket`,
      * where LBracket `\x5B\x00`, RBracket `\x5D\x00`, SC `\x3B\x00`, into stream.
      */
-    bool writeInstruction(std::ostream &stream, const PolicyInstruction &instruction);
+    void writeInstruction(std::ostream &stream, const PolicyInstruction &instruction);
 
 public:
     PRegParserPrivate()
@@ -102,9 +102,7 @@ public:
     {
         PolicyBody body;
 
-        if (!parseHeader(stream)) {
-            return {};
-        }
+        parseHeader(stream);
 
         {
             // make eof on last byte
@@ -114,10 +112,8 @@ public:
         while (!stream.eof()) {
             stream.seekg(-1, std::ios::cur);
             auto instruction = getInstruction(stream);
-            if (!instruction.has_value()) {
-                return {};
-            }
-            body.instructions.emplace_back(std::move(*instruction));
+
+            body.instructions.emplace_back(instruction);
             {
                 // make eof on last byte
                 char c;
@@ -136,10 +132,9 @@ public:
 
         writeHeader(stream);
         for (const auto &instruction : file.body->instructions) {
-            if (!writeInstruction(stream, instruction)) {
-                return false;
-            }
+            writeInstruction(stream, instruction);
         }
+
         return true;
     }
 
@@ -154,49 +149,30 @@ private:
     ::iconv_t m_iconv_write_id;
 };
 
-bool PRegParserPrivate::parseHeader(std::istream &stream)
+void PRegParserPrivate::parseHeader(std::istream &stream)
 {
     char header[8];
     stream.read(header, 8);
-    check_stream_bool(stream);
+    check_stream(stream);
 
     const uint32_t signature = *reinterpret_cast<uint32_t *>(&header[0]);
     const uint32_t version = *reinterpret_cast<uint32_t *>(&header[4]);
     const uint32_t normal_signature = *reinterpret_cast<const uint32_t *>(&valid_header[0]);
     const uint32_t normal_version = *reinterpret_cast<const uint32_t *>(&valid_header[4]);
 
-    return signature == normal_signature && version == normal_version;
+    if (signature != normal_signature && version != normal_version) {
+        throw std::runtime_error("corrupted PReg file.");
+    }
 }
 
-std::optional<uint32_t> PRegParserPrivate::getSize(std::istream &stream)
+uint32_t PRegParserPrivate::getSize(std::istream &stream)
 {
-    uint32_t size;
-
-    {
-        auto tmp = bufferToIntegral<uint32_t, true>(stream);
-
-        if (!tmp.has_value()) {
-            return {};
-        }
-
-        size = *tmp;
-    }
-
-    return size;
+    return bufferToIntegral<uint32_t, true>(stream);
 }
 
-std::optional<PolicyRegType> PRegParserPrivate::getType(std::istream &stream)
+PolicyRegType PRegParserPrivate::getType(std::istream &stream)
 {
-    // identicaly to get size, but with convert to PolicyRegType.
-    uint32_t num;
-
-    {
-        auto tmp = bufferToIntegral<uint32_t, true>(stream);
-        if (!tmp.has_value()) {
-            return {};
-        }
-        num = *tmp;
-    }
+    uint32_t num = bufferToIntegral<uint32_t, true>(stream);
 
     switch (static_cast<PolicyRegType>(num)) {
     case PolicyRegType::REG_SZ:
@@ -218,7 +194,8 @@ std::optional<PolicyRegType> PRegParserPrivate::getType(std::istream &stream)
 
     return static_cast<PolicyRegType>(num);
 }
-std::optional<std::string> PRegParserPrivate::getKey(std::istream &stream)
+
+std::string PRegParserPrivate::getKey(std::istream &stream)
 {
     std::string key;
     char16_t data;
@@ -234,17 +211,19 @@ std::optional<std::string> PRegParserPrivate::getKey(std::istream &stream)
         check_stream(stream);
         data = leToNative(data);
     }
-    if (data == 0 || data == 0x5C) {
-        stream.seekg(-2, std::ios::cur);
-    }
+
     // Key from Keypath must contain 1 or more symbols.
-    if (key.empty()) {
-        return {};
+    if (key.empty() || (data != 0 && data != 0x5C)) {
+        throw std::runtime_error("corrupted PReg file.");
     }
+
+    // Remove last symbol
+    stream.seekg(-2, std::ios::cur);
 
     return { std::move(key) };
 }
-std::optional<std::string> PRegParserPrivate::getKeypath(std::istream &stream)
+
+std::string PRegParserPrivate::getKeypath(std::istream &stream)
 {
     std::string keyPath;
     char16_t sym = 0;
@@ -252,11 +231,7 @@ std::optional<std::string> PRegParserPrivate::getKeypath(std::istream &stream)
     while (true) {
         auto key = getKey(stream);
 
-        if (!key.has_value()) {
-            return {};
-        }
-
-        keyPath.append(*key);
+        keyPath.append(key);
 
         stream.read(reinterpret_cast<char *>(&sym), 2);
         check_stream(stream);
@@ -267,7 +242,7 @@ std::optional<std::string> PRegParserPrivate::getKeypath(std::istream &stream)
         }
 
         if (sym != 0x5C) {
-            return {};
+            throw std::runtime_error("corrupted PReg file.");
         }
 
         keyPath.push_back('\\');
@@ -276,7 +251,7 @@ std::optional<std::string> PRegParserPrivate::getKeypath(std::istream &stream)
     return { keyPath };
 }
 
-std::optional<std::string> PRegParserPrivate::getValue(std::istream &stream)
+std::string PRegParserPrivate::getValue(std::istream &stream)
 {
     std::string result;
     char16_t data;
@@ -291,7 +266,7 @@ std::optional<std::string> PRegParserPrivate::getValue(std::istream &stream)
 
         // Check maximum value length
         if (result.length() == 259) {
-            return {};
+            throw std::runtime_error("corrupted PReg file.");
         }
 
         result.push_back(data);
@@ -308,12 +283,11 @@ std::optional<std::string> PRegParserPrivate::getValue(std::istream &stream)
     return { std::move(result) };
 }
 
-std::optional<PolicyData> PRegParserPrivate::getData(std::istream &stream, PolicyRegType type,
-                                                     uint32_t size)
+PolicyData PRegParserPrivate::getData(std::istream &stream, PolicyRegType type, uint32_t size)
 {
     switch (type) {
     case PolicyRegType::REG_NONE:
-        return {};
+        throw std::runtime_error("this case cannot be called in this place. WTF???");
     case PolicyRegType::REG_SZ:
     case PolicyRegType::REG_EXPAND_SZ:
     case PolicyRegType::REG_LINK:
@@ -342,30 +316,30 @@ std::optional<PolicyData> PRegParserPrivate::getData(std::istream &stream, Polic
     return {};
 }
 
-std::optional<PolicyInstruction> PRegParserPrivate::getInstruction(std::istream &stream)
+PolicyInstruction PRegParserPrivate::getInstruction(std::istream &stream)
 {
     PolicyInstruction instruction;
     uint32_t dataSize;
 
     check_sym(stream, '[');
 
-    must_present(instruction.key, getKeypath(stream));
+    instruction.key = getKeypath(stream);
 
     check_sym(stream, ';');
 
-    must_present(instruction.value, getValue(stream));
+    instruction.value = getValue(stream);
 
     check_sym(stream, ';');
 
-    must_present(instruction.type, getType(stream));
+    instruction.type = getType(stream);
 
     check_sym(stream, ';');
 
-    must_present(dataSize, getSize(stream));
+    dataSize = getSize(stream);
 
     check_sym(stream, ';');
 
-    must_present(instruction.data, getData(stream, instruction.type, dataSize));
+    instruction.data = getData(stream, instruction.type, dataSize);
 
     check_sym(stream, ']');
 
@@ -402,10 +376,10 @@ std::optional<std::stringstream> getDataStream(const PolicyData &data, PolicyReg
         break;
 
     case PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
-        integralToBuffer<uint64_t, true>(stream, std::get<uint32_t>(data));
+        integralToBuffer<uint64_t, true>(stream, std::get<uint64_t>(data));
         break;
     case PolicyRegType::REG_QWORD_BIG_ENDIAN:
-        integralToBuffer<uint64_t, false>(stream, std::get<uint32_t>(data));
+        integralToBuffer<uint64_t, false>(stream, std::get<uint64_t>(data));
         break;
 
     case PolicyRegType::REG_NONE:
@@ -415,13 +389,12 @@ std::optional<std::stringstream> getDataStream(const PolicyData &data, PolicyReg
     return stream;
 }
 
-bool PRegParserPrivate::writeHeader(std::ostream &stream)
+void PRegParserPrivate::writeHeader(std::ostream &stream)
 {
     stream.write(valid_header, sizeof(valid_header));
-    return true;
 }
 
-bool PRegParserPrivate::writeInstruction(std::ostream &stream, const PolicyInstruction &instruction)
+void PRegParserPrivate::writeInstruction(std::ostream &stream, const PolicyInstruction &instruction)
 {
     write_sym(stream, '[');
 
@@ -438,21 +411,15 @@ bool PRegParserPrivate::writeInstruction(std::ostream &stream, const PolicyInstr
     write_sym(stream, ';');
 
     auto dataStream = getDataStream(instruction.data, instruction.type);
-    if (!dataStream.has_value()) {
-        return false;
-    }
+
     integralToBuffer<uint32_t, true>(stream, static_cast<uint32_t>(dataStream->tellp()));
 
     write_sym(stream, ';');
 
     stream << dataStream->rdbuf();
-    if (stream.fail()) {
-        return false;
-    }
+    check_stream(stream);
 
     write_sym(stream, ']');
-
-    return true;
 }
 
 std::unique_ptr<PRegParser> createPregParser()

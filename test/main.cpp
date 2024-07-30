@@ -22,7 +22,7 @@
 
 #include "./binary.hpp"
 #include "./endian.hpp"
-#include "./testcases.hpp"
+#include "./generatecase.hpp"
 
 #include <iconv.h>
 
@@ -32,6 +32,7 @@ int main()
     testBinary();
     testCase1();
     testCase2();
+    generateCase(500);
 
     return 0;
 }
