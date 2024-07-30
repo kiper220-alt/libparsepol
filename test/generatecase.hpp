@@ -33,7 +33,7 @@ std::string generateRandomKey(size_t length)
     key.resize(length);
     for (size_t i = 0; i < length; ++i) {
         // [0x20-\x5B] | [\x5D-\x7E]
-        key[i] = (rand() % 0x5F) + 0x20;
+        key[i] = (rand() % 0x5E) + 0x20;
         key[i] = key[i] >= 0x5c ? key[i] + 1 : key[i];
     }
     return key;

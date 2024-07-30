@@ -69,6 +69,9 @@ size_t stringToBuffer(std::ostream &buffer, const std::string &source, iconv_t c
 
 std::vector<std::string> bufferToStrings(std::istream &buffer, size_t size, iconv_t conv)
 {
+    if (size == 0) {
+        return {};
+    }
     if (conv == nullptr) {
         conv = iconv_open("UTF-8", "UTF-16LE");
     }

@@ -416,7 +416,7 @@ void PRegParserPrivate::writeInstruction(std::ostream &stream, const PolicyInstr
 
     write_sym(stream, ';');
 
-    stream << dataStream->rdbuf();
+    stream << dataStream->str();
     check_stream(stream);
 
     write_sym(stream, ']');
