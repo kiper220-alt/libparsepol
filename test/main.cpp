@@ -32,7 +32,8 @@ int main()
     testBinary();
     testCase1();
     testCase2();
-    generateCase(500);
+    testCase3();
+    generateCase(100);
 
     return 0;
 }

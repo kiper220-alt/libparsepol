@@ -137,3 +137,12 @@ void testCase2()
 
     std::cerr << "test case 2: OK" << std::endl;
 }
+
+void testCase3()
+{
+    std::ifstream file("../rsc/case2.pol", std::ios::in | std::ios::binary);
+
+    auto parser = createPregParser();
+    auto pol = parser->parse(file);
+    std::cout << pol.body->instructions[3].key << std::endl;
+}
