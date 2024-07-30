@@ -66,7 +66,7 @@ std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, si
  * \warning `conv` must be initialized by `iconv_open("UTF-16LE", "UTF-8")`
  * \warning if `conv` is (size_t)-1, then function will return (size_t)-1
  */
-size_t StringsToBuffer(std::ostream &buffer, std::vector<std::string> &data,
+size_t stringsToBuffer(std::ostream &buffer, const std::vector<std::string> &data,
                        iconv_t conv = nullptr);
 /*!
  * \brief Get vector of raw data from istream (binary)
@@ -78,7 +78,7 @@ std::optional<std::vector<uint8_t>> bufferToVector(std::istream &buffer, size_t 
  * \brief Put vector of raw data to istream (binary)
  * \return on any error return false. On success return true.
  */
-bool vectorToBuffer(std::ostream &buffer, std::vector<uint8_t> &data);
+bool vectorToBuffer(std::ostream &buffer, const std::vector<uint8_t> &data);
 
 /*!
  * \brief Get integral number from istream (binary)

@@ -31,6 +31,7 @@ int main()
     testEndian();
     testBinary();
     testCase1();
+    testCase2();
 
     return 0;
 }

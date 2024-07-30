@@ -110,7 +110,10 @@ inline constexpr T leToNative(T value)
 template <typename T,
           typename = std::enable_if_t<std::is_integral_v<T>
                                       && sizeof(T) <= sizeof(unsigned long long)>>
-inline constexpr T nativeToBe = beToNative<T>;
+inline constexpr T nativeToBe(T num)
+{
+    return beToNative<T>(num);
+}
 
 /*!
  *  \brief Convert native endianness to little endian
@@ -118,12 +121,15 @@ inline constexpr T nativeToBe = beToNative<T>;
 template <typename T,
           typename = std::enable_if_t<std::is_integral_v<T>
                                       && sizeof(T) <= sizeof(unsigned long long)>>
-inline constexpr T nativeToLe = leToNative<T>;
+inline constexpr T nativeToLe(T num)
+{
+    return leToNative<T>(num);
+}
 
 /*!
  * \brief Helper alias for string iterator(just minimize code size)
  */
-template<class T>
+template <class T>
 using string_const_iterator = typename std::basic_string<T>::const_iterator;
 
 /*!
@@ -131,7 +137,8 @@ using string_const_iterator = typename std::basic_string<T>::const_iterator;
  */
 template <typename target_char, typename source_char>
 inline std::optional<std::basic_string<target_char>>
-convert(string_const_iterator<source_char> begin, string_const_iterator<source_char> end, iconv_t conv)
+convert(string_const_iterator<source_char> begin, string_const_iterator<source_char> end,
+        iconv_t conv)
 {
     std::basic_string<target_char> result = {};
 

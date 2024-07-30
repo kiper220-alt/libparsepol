@@ -20,6 +20,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 #include <parser.hpp>
 
@@ -28,17 +29,111 @@ void testCase1()
     std::ifstream file("../rsc/case1.pol", std::ios::in | std::ios::binary);
 
     if (!file.is_open()) {
-        std::cerr << "Can't open file `rsc/case1.pol`!" << std::endl;
+        std::cerr << "can't open file `rsc/case1.pol`!" << std::endl;
         return;
     }
 
     auto parser = createPregParser();
 
-    std::optional<PolicyFile> data = parser->parse(file);
+    PolicyFile data = parser->parse(file);
 
-    if (!data.has_value() || !data->body.has_value()) {
-        std::cerr << "Can't parse file `rsc/case1.pol`!" << std::endl;
+    if (!data.body.has_value()) {
+        std::cerr << "parser is invalid: can't parse file `rsc/case1.pol`" << std::endl;
+        std::cerr << "parser is invalid: internal error" << std::endl;
+        std::cerr.flush();
+        assert(0);
+    }
+    if (data.body->instructions[0].key != std::string("Software\\BaseALT\\Policies\\gsettings")) {
+        std::cerr << "parser is invalid: can't parse file `rsc/case1.pol`" << std::endl;
+        std::cerr << "parser is invalid: invalid instruction KeyPath" << std::endl;
+        std::cerr.flush();
+        assert(0);
+    }
+    if (data.body->instructions[0].value != std::string("org.mate.background.secondary-color")) {
+        std::cerr << "parser is invalid: can't parse file `rsc/case1.pol`" << std::endl;
+        std::cerr << "parser is invalid: invalid instruction Value" << std::endl;
+        std::cerr.flush();
+        assert(0);
+    }
+    if (data.body->instructions[0].type != PolicyRegType::REG_SZ) {
+        std::cerr << "parser is invalid: can't parse file `rsc/case1.pol`" << std::endl;
+        std::cerr << "parser is invalid: invalid instruction size" << std::endl;
+        std::cerr.flush();
+        assert(0);
+    }
+    if (std::get<std::string>(data.body->instructions[0].data) != std::string("'r[e]d'")) {
+        std::cerr << "parser is invalid: can't parse file `rsc/case1.pol`" << std::endl;
+        std::cerr << "parser is invalid: invalid instruction data" << std::endl;
+        std::cerr.flush();
+        assert(0);
+    }
+
+    std::cerr << "read from file `rsc/case1.pol`: OK" << std::endl;
+}
+
+bool equal(const PolicyFile &a, const PolicyFile &b)
+{
+    if (!a.body.has_value() || !b.body.has_value()) {
+        return false;
+    }
+    if (b.body->instructions.size() != a.body->instructions.size()) {
+        std::cerr << "error: `" << a.body->instructions.size() << "` != `"
+                  << b.body->instructions.size() << "`" << std::endl;
+        return false;
+    }
+
+    for (size_t i = 0; i < a.body->instructions.size(); i++) {
+        if (a.body->instructions[i].key != b.body->instructions[i].key) {
+            std::cerr << "error: `" << a.body->instructions[i].key << "` != `"
+                      << b.body->instructions[i].key << "`" << std::endl;
+            return false;
+        }
+        if (a.body->instructions[i].value != b.body->instructions[i].value) {
+            std::cerr << "error: `" << a.body->instructions[i].value << "` != `"
+                      << b.body->instructions[i].value << "`" << std::endl;
+            return false;
+        }
+        if (a.body->instructions[i].type != b.body->instructions[i].type) {
+            std::cerr << "error: `" << static_cast<int>(a.body->instructions[i].type) << "` != `"
+                      << static_cast<int>(b.body->instructions[i].type) << "`" << std::endl;
+            return false;
+        }
+        if (a.body->instructions[i].data != b.body->instructions[i].data) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void testCase2()
+{
+    std::stringstream stream;
+    PolicyFile pol1 = { .body{ PolicyBody{
+                       { PolicyInstruction{ "Test\\Path", "value1", PolicyRegType::REG_SZ,
+                                            std::string("'r[e]d'") },
+                         PolicyInstruction{ "Test\\Path", "value1", PolicyRegType::REG_SZ,
+                                            std::string("Привет Мир!") },
+                         PolicyInstruction{ "Test\\Path", "value1",
+                                            PolicyRegType::REG_DWORD_LITTLE_ENDIAN,
+                                            uint32_t(123321) },
+                         PolicyInstruction{ "Test\\Path", "value1", PolicyRegType::REG_MULTI_SZ,
+                                            std::vector<std::string>({ "a", "b", "c" }) } } } } },
+               pol2;
+
+    auto parser = createPregParser();
+
+    if (!parser->write(stream, pol1)) {
+        std::cerr << "parser is invalid: can't write to stream" << std::endl;
         return;
     }
-    assert(std::get<std::string>(data->body->instructions[0].data) == std::string("'r[e]d'"));
+
+    pol2 = parser->parse(stream);
+
+    if (!equal(pol1, pol2)) {
+        std::cerr << "parser is invalid: error in parser or serializator" << std::endl;
+        assert(0);
+    }
+
+    std::cerr << "test case 2: OK" << std::endl;
 }

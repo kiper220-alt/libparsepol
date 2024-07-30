@@ -61,7 +61,7 @@ size_t stringToBuffer(std::ostream &buffer, const std::string &source, iconv_t c
     std::basic_string<char16_t> converted;
     {
         auto tmp = convert<char16_t, char>(source, conv);
-        if (tmp.has_value()) {
+        if (!tmp.has_value()) {
             return false;
         }
         converted = std::move(tmp.value());
@@ -77,23 +77,35 @@ size_t stringToBuffer(std::ostream &buffer, const std::string &source, iconv_t c
 std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, size_t size,
                                                         iconv_t conv)
 {
+    if (conv == nullptr) {
+        conv = iconv_open("UTF-8", "UTF-16LE");
+    }
+
+    if (conv == reinterpret_cast<iconv_t>(-1)) {
+        return {};
+    }
+
     std::vector<std::string> result;
     std::basic_string<char16_t> tmp;
     size_t current = 0;
     size_t found = 0;
 
     // std::string contains '\0' at the end (C style), which means that the actual buffer size
-    // is `size + 1`. We read `size + 1` bytes to check that the buffer ends with '\0'.
+    // is `size`. We read `size` bytes to check that the buffer ends with '\0'.
     // '\0' is included in `size`, so we read `size` bytes.
-    tmp.resize(size - 1);
+    tmp.resize((size / 2) - 1);
     buffer.read(reinterpret_cast<char *>(tmp.data()), size);
     check_stream(buffer);
 
-    while (found != tmp.size() + 1) {
+    while (found <= tmp.size()) {
         found = tmp.find(char16_t(0), current);
 
         if (found == std::string::npos) {
-            return {};
+            found = tmp.size();
+
+            if (tmp.data()[found] != 0) {
+                return {};
+            }
         }
 
         {
@@ -111,7 +123,7 @@ std::optional<std::vector<std::string>> bufferToStrings(std::istream &buffer, si
     return result;
 }
 
-size_t StringsToBuffer(std::ostream &buffer, std::vector<std::string> &data, iconv_t conv)
+size_t stringsToBuffer(std::ostream &buffer, const std::vector<std::string> &data, iconv_t conv)
 {
     size_t size = 0;
 
@@ -140,7 +152,7 @@ std::optional<std::vector<uint8_t>> bufferToVector(std::istream &buffer, size_t 
     return result;
 }
 
-bool vectorToBuffer(std::ostream &buffer, std::vector<uint8_t> &data)
+bool vectorToBuffer(std::ostream &buffer, const std::vector<uint8_t> &data)
 {
     buffer.write(reinterpret_cast<const char *>(data.data()), data.size());
     check_stream_bool(buffer);

@@ -82,7 +82,7 @@ class PRegParser
 {
 public:
     virtual PolicyFile parse(std::istream &stream) = 0;
-    virtual bool write(const PolicyFile &file, std::istream &stream) = 0;
+    virtual bool write(std::ostream &stream, const PolicyFile &file) = 0;
     virtual ~PRegParser() = default;
 };
 

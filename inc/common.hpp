@@ -60,4 +60,13 @@
             return {};                                   \
         }                                                \
     }
+#define write_sym(target, sym)                            \
+    {                                                     \
+        char16_t buff = leToNative(char16_t(sym));        \
+        target.write(reinterpret_cast<char *>(&buff), 2); \
+        if (target.fail()) {                              \
+            return false;                                 \
+        }                                                 \
+    }
+
 #endif // PREGPARSER_COMMON

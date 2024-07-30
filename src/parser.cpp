@@ -17,6 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <sstream>
+#include <vector>
+
 #include <binary.hpp>
 #include <common.hpp>
 #include <parser.hpp>
@@ -77,6 +80,17 @@ private:
      */
     std::optional<PolicyInstruction> getInstruction(std::istream &stream);
 
+    /*!
+     * \brief Put `\x50\x52\x65\x67\x01\x00\x00\x00` into stream
+     */
+    bool writeHeader(std::ostream &stream);
+    /*!
+     * \brief Put instruction, with ABNF
+     * `LBracket KeyPath SC Value SC Type SC Size SC Data RBracket`,
+     * where LBracket `\x5B\x00`, RBracket `\x5D\x00`, SC `\x3B\x00`, into stream.
+     */
+    bool writeInstruction(std::ostream &stream, const PolicyInstruction &instruction);
+
 public:
     PRegParserPrivate()
     {
@@ -114,7 +128,20 @@ public:
         return { body };
     }
 
-    virtual bool write(const PolicyFile &file, std::istream &stream) override { return false; }
+    virtual bool write(std::ostream &stream, const PolicyFile &file) override
+    {
+        if (!file.body.has_value()) {
+            return true;
+        }
+
+        writeHeader(stream);
+        for (const auto &instruction : file.body->instructions) {
+            if (!writeInstruction(stream, instruction)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     virtual ~PRegParserPrivate()
     {
@@ -343,6 +370,89 @@ std::optional<PolicyInstruction> PRegParserPrivate::getInstruction(std::istream 
     check_sym(stream, ']');
 
     return instruction;
+}
+
+std::optional<std::stringstream> getDataStream(const PolicyData &data, PolicyRegType type)
+{
+    std::stringstream stream;
+
+    switch (type) {
+    case PolicyRegType::REG_SZ:
+    case PolicyRegType::REG_EXPAND_SZ:
+    case PolicyRegType::REG_LINK:
+        stringToBuffer(stream, std::get<std::string>(data));
+        break;
+
+    case PolicyRegType::REG_BINARY:
+        vectorToBuffer(stream, std::get<std::vector<uint8_t>>(data));
+        break;
+
+    case PolicyRegType::REG_DWORD_LITTLE_ENDIAN:
+        integralToBuffer<uint32_t, true>(stream, std::get<uint32_t>(data));
+        break;
+    case PolicyRegType::REG_DWORD_BIG_ENDIAN:
+        integralToBuffer<uint32_t, false>(stream, std::get<uint32_t>(data));
+        break;
+
+    case PolicyRegType::REG_MULTI_SZ:
+    case PolicyRegType::REG_RESOURCE_LIST:
+    case PolicyRegType::REG_FULL_RESOURCE_DESCRIPTOR: // ????
+    case PolicyRegType::REG_RESOURCE_REQUIREMENTS_LIST:
+        stringsToBuffer(stream, std::get<std::vector<std::string>>(data));
+        break;
+
+    case PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
+        integralToBuffer<uint64_t, true>(stream, std::get<uint32_t>(data));
+        break;
+    case PolicyRegType::REG_QWORD_BIG_ENDIAN:
+        integralToBuffer<uint64_t, false>(stream, std::get<uint32_t>(data));
+        break;
+
+    case PolicyRegType::REG_NONE:
+    default:
+        return {};
+    }
+    return stream;
+}
+
+bool PRegParserPrivate::writeHeader(std::ostream &stream)
+{
+    stream.write(valid_header, sizeof(valid_header));
+    return true;
+}
+
+bool PRegParserPrivate::writeInstruction(std::ostream &stream, const PolicyInstruction &instruction)
+{
+    write_sym(stream, '[');
+
+    stringToBuffer(stream, instruction.key);
+
+    write_sym(stream, ';');
+
+    stringToBuffer(stream, instruction.value);
+
+    write_sym(stream, ';');
+
+    integralToBuffer<uint32_t, true>(stream, static_cast<uint32_t>(instruction.type));
+
+    write_sym(stream, ';');
+
+    auto dataStream = getDataStream(instruction.data, instruction.type);
+    if (!dataStream.has_value()) {
+        return false;
+    }
+    integralToBuffer<uint32_t, true>(stream, static_cast<uint32_t>(dataStream->tellp()));
+
+    write_sym(stream, ';');
+
+    stream << dataStream->rdbuf();
+    if (stream.fail()) {
+        return false;
+    }
+
+    write_sym(stream, ']');
+
+    return true;
 }
 
 std::unique_ptr<PRegParser> createPregParser()
