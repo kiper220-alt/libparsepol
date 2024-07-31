@@ -104,21 +104,12 @@ public:
 
         parseHeader(stream);
 
-        {
-            // make eof on last byte
-            char c;
-            stream.read(&c, 1);
-        }
+        stream.peek();
         while (!stream.eof()) {
-            stream.seekg(-1, std::ios::cur);
             auto instruction = getInstruction(stream);
 
             body.instructions.emplace_back(instruction);
-            {
-                // make eof on last byte
-                char c;
-                stream.read(&c, 1);
-            }
+            stream.peek();
         }
 
         return { body };
