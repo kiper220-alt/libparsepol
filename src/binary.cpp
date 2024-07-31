@@ -22,6 +22,8 @@
 #include <binary.hpp>
 #include <common.hpp>
 
+namespace pol {
+
 std::string bufferToString(std::istream &buffer, size_t size, iconv_t conv)
 {
     bool custom_conv = false;
@@ -165,3 +167,5 @@ void vectorToBuffer(std::ostream &buffer, const std::vector<uint8_t> &data)
     buffer.write(reinterpret_cast<const char *>(data.data()), data.size());
     check_stream(buffer);
 }
+
+} // namespace pol

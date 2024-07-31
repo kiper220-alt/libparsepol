@@ -30,6 +30,8 @@
 
 #include <iconv.h>
 
+namespace pol {
+
 enum class PolicyRegType {
     REG_NONE,
     /* Null-terminated-string */
@@ -175,5 +177,7 @@ private:
 };
 
 std::unique_ptr<PRegParser> createPregParser();
+
+} // namespace pol
 
 #endif // PREGPARSER_PARSER

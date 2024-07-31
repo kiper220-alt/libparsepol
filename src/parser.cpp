@@ -24,6 +24,8 @@
 #include <common.hpp>
 #include <parser.hpp>
 
+namespace pol {
+
 /*!
  * \brief Valid POL Registery file header
  */
@@ -387,3 +389,5 @@ std::unique_ptr<PRegParser> createPregParser()
 {
     return std::make_unique<PRegParser>();
 }
+
+} // namespace pol

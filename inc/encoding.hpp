@@ -28,6 +28,8 @@
 
 #include <iconv.h>
 
+namespace pol {
+
 // C++ before C++20 is not support endianess. Becouse of that, we need to
 // provide our own implementation
 
@@ -174,5 +176,7 @@ inline std::basic_string<target_char> convert(const std::basic_string<source_cha
 {
     return convert<target_char, source_char>(source.cbegin(), source.cend(), conv);
 }
+
+} // namespace pol
 
 #endif // PREGPARSER_ENCODING

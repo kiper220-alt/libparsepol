@@ -29,7 +29,7 @@ void testCase(std::string filename)
     std::ifstream file("../rsc/" + filename, std::ios::in | std::ios::binary);
     std::stringstream stream;
 
-    auto parser = createPregParser();
+    auto parser = pol::createPregParser();
     auto pol = parser->parse(file);
 
     parser->write(stream, pol);

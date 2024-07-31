@@ -28,6 +28,8 @@
 
 #include <encoding.hpp>
 
+namespace pol {
+
 /*!
  * \brief Get string from istream (binary)
  * if conv == nullptr, then conv will be initialized inside by `iconv_open("UTF-8", "UTF-16LE")`
@@ -127,4 +129,7 @@ void integralToBuffer(std::ostream &buffer, T num)
                 + ", Failed to write integral number to buffer, error was encountered.");
     }
 }
+
+} // namespace pol
+
 #endif // PREGPARSER_BINARY

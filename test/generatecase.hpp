@@ -63,30 +63,30 @@ std::string generateRandomValue(std::mt19937 &gen)
     return value;
 }
 
-PolicyRegType generateRandomType(std::mt19937 &gen)
+pol::PolicyRegType generateRandomType(std::mt19937 &gen)
 {
     switch (rand() % 7) {
     case 0:
-        return PolicyRegType::REG_BINARY;
+        return pol::PolicyRegType::REG_BINARY;
     case 1:
-        return PolicyRegType::REG_DWORD_LITTLE_ENDIAN;
+        return pol::PolicyRegType::REG_DWORD_LITTLE_ENDIAN;
     case 2:
-        return PolicyRegType::REG_DWORD_BIG_ENDIAN;
+        return pol::PolicyRegType::REG_DWORD_BIG_ENDIAN;
     case 3:
-        return PolicyRegType::REG_QWORD_LITTLE_ENDIAN;
+        return pol::PolicyRegType::REG_QWORD_LITTLE_ENDIAN;
     case 4:
-        return PolicyRegType::REG_QWORD_BIG_ENDIAN;
+        return pol::PolicyRegType::REG_QWORD_BIG_ENDIAN;
     case 5:
-        return PolicyRegType::REG_SZ;
+        return pol::PolicyRegType::REG_SZ;
     case 6:
-        return PolicyRegType::REG_MULTI_SZ;
+        return pol::PolicyRegType::REG_MULTI_SZ;
     default:
         break;
     }
-    return PolicyRegType::REG_BINARY;
+    return pol::PolicyRegType::REG_BINARY;
 }
 
-PolicyData generateRandomData(PolicyRegType type, std::mt19937 &gen)
+pol::PolicyData generateRandomData(pol::PolicyRegType type, std::mt19937 &gen)
 {
     iconv_t conv = iconv_open("UTF-8", "UTF-32LE");
     if (conv == (decltype(conv))-1) {
@@ -94,20 +94,20 @@ PolicyData generateRandomData(PolicyRegType type, std::mt19937 &gen)
     }
 
     switch (type) {
-    case PolicyRegType::REG_NONE:
+    case pol::PolicyRegType::REG_NONE:
         return {};
-    case PolicyRegType::REG_SZ: {
+    case pol::PolicyRegType::REG_SZ: {
         std::basic_string<char32_t> data;
         data.resize(rand() % 100);
         for (size_t i = 0; i < data.size(); ++i) {
             data[i] = (gen() % 0x5E) + 0x20;
         }
-        auto result = convert<char, char32_t>(data, conv);
+        auto result = pol::convert<char, char32_t>(data, conv);
         iconv_close(conv);
         return result;
     }
 
-    case PolicyRegType::REG_MULTI_SZ: {
+    case pol::PolicyRegType::REG_MULTI_SZ: {
         std::vector<std::string> data1;
         size_t count = rand() % 100;
         for (size_t i = 0; i < count; ++i) {
@@ -116,13 +116,13 @@ PolicyData generateRandomData(PolicyRegType type, std::mt19937 &gen)
             for (size_t i = 0; i < data.size(); ++i) {
                 data[i] = (gen() % 0x5E) + 0x20;
             }
-            data1.push_back(convert<char, char32_t>(data, conv));
+            data1.push_back(pol::convert<char, char32_t>(data, conv));
         }
         iconv_close(conv);
         return data1;
     }
 
-    case PolicyRegType::REG_BINARY: {
+    case pol::PolicyRegType::REG_BINARY: {
         std::vector<uint8_t> data;
         size_t count = gen() % 100;
         for (size_t i = 0; i < count; ++i) {
@@ -132,16 +132,16 @@ PolicyData generateRandomData(PolicyRegType type, std::mt19937 &gen)
         return data;
     }
 
-    case PolicyRegType::REG_DWORD_LITTLE_ENDIAN:
+    case pol::PolicyRegType::REG_DWORD_LITTLE_ENDIAN:
         iconv_close(conv);
         return uint32_t(rand() % 10'000'000);
-    case PolicyRegType::REG_DWORD_BIG_ENDIAN:
+    case pol::PolicyRegType::REG_DWORD_BIG_ENDIAN:
         iconv_close(conv);
         return uint32_t(rand() % 10'000'000);
-    case PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
+    case pol::PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
         iconv_close(conv);
         return uint64_t(rand() % 10'000'000);
-    case PolicyRegType::REG_QWORD_BIG_ENDIAN:
+    case pol::PolicyRegType::REG_QWORD_BIG_ENDIAN:
         iconv_close(conv);
         return uint64_t(rand() % 10'000'000);
     default:
@@ -154,7 +154,7 @@ void generateCase(size_t last, size_t seed = -1)
 {
     std::mt19937 gen;
     std::uniform_int_distribution<std::mt19937::result_type> dist(0, 500);
-    auto parser = createPregParser();
+    auto parser = pol::createPregParser();
     size_t current = 0;
 
     if (seed == -1) {
@@ -171,11 +171,11 @@ void generateCase(size_t last, size_t seed = -1)
         std::stringstream file;
 
         // Generate case
-        PolicyFile data;
-        data.body = std::make_optional<PolicyBody>();
+        pol::PolicyFile data;
+        data.body = std::make_optional<pol::PolicyBody>();
         size_t el = dist(gen);
         for (size_t i = 0; i < el; i++) {
-            PolicyInstruction instruction;
+            pol::PolicyInstruction instruction;
             instruction.type = generateRandomType(gen);
             instruction.data = generateRandomData(instruction.type, gen);
             data.body->instructions[generateRandomKeypath(gen)][generateRandomValue(gen)] =

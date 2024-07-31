@@ -20,30 +20,30 @@
 #ifndef PREGPARSER_TEST_ENDIAN
 #define PREGPARSER_TEST_ENDIAN
 
-#include <encoding.hpp>
-#include <iostream>
-#include <cinttypes>
-#include <sstream>
 #include <algorithm>
 #include <cassert>
+#include <cinttypes>
+#include <encoding.hpp>
+#include <iostream>
+#include <sstream>
 
 void testEndian()
 {
 
     uint8_t num1 = 0x12;
-    assert(byteswap<uint8_t>(num1) == 0x12);
+    assert(pol::byteswap<uint8_t>(num1) == 0x12);
     std::cout << "byteswap<uint8_t>: OK" << std::endl;
 
     uint16_t num2 = 0x1234;
-    assert(byteswap<uint16_t>(num2) == 0x3412);
+    assert(pol::byteswap<uint16_t>(num2) == 0x3412);
     std::cout << "byteswap<uint16_t>: OK" << std::endl;
 
     uint32_t num3 = 0x12345678;
-    assert(byteswap<uint32_t>(num3) == 0x78563412);
+    assert(pol::byteswap<uint32_t>(num3) == 0x78563412);
     std::cout << "byteswap<uint32_t>: OK" << std::endl;
 
     uint64_t num4 = 0x123456789ABCDEF0;
-    assert(byteswap<uint64_t>(num4) == 0xF0DEBC9A78563412);
+    assert(pol::byteswap<uint64_t>(num4) == 0xF0DEBC9A78563412);
     std::cout << "byteswap<uint64_t>: OK" << std::endl;
 }
 

@@ -35,7 +35,7 @@ void testBufferToIntegral()
     buffer.write(tmp, 4);
     buffer.seekg(0);
 
-    std::optional<uint32_t> result = bufferToIntegral<uint32_t, true>(buffer);
+    std::optional<uint32_t> result = pol::bufferToIntegral<uint32_t, true>(buffer);
 
     assert(result.value_or(0) == num);
 
@@ -48,7 +48,7 @@ void testBufferToIntegral()
     buffer.write(reinterpret_cast<const char *>(&num), 4);
     buffer.seekg(0);
 
-    result = bufferToIntegral<uint32_t, false>(buffer);
+    result = pol::bufferToIntegral<uint32_t, false>(buffer);
 
     std::reverse(tmp, tmp + 4);
     assert(result.value_or(0) == num);
