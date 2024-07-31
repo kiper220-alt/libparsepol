@@ -288,7 +288,7 @@ PolicyData PRegParserPrivate::getData(std::istream &stream, PolicyRegType type, 
     case PolicyRegType::REG_SZ:
     case PolicyRegType::REG_EXPAND_SZ:
     case PolicyRegType::REG_LINK:
-        return { bufferToString(stream, size) };
+        return { bufferToString(stream, size, this->m_iconv_read_id) };
 
     case PolicyRegType::REG_BINARY:
         return { bufferToVector(stream, size) };
@@ -302,7 +302,7 @@ PolicyData PRegParserPrivate::getData(std::istream &stream, PolicyRegType type, 
     case PolicyRegType::REG_RESOURCE_LIST:
     case PolicyRegType::REG_FULL_RESOURCE_DESCRIPTOR: // ????
     case PolicyRegType::REG_RESOURCE_REQUIREMENTS_LIST:
-        return { bufferToStrings(stream, size) };
+        return { bufferToStrings(stream, size, this->m_iconv_read_id) };
 
     case PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
         return { bufferToIntegral<uint64_t, true>(stream) };

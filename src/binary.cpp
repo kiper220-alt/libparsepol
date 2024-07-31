@@ -24,8 +24,10 @@
 
 std::string bufferToString(std::istream &buffer, size_t size, iconv_t conv)
 {
+    bool custom_conv = false;
     if (conv == nullptr) {
         conv = iconv_open("UTF-8", "UTF-16LE");
+        custom_conv = true;
     }
 
     if (conv == reinterpret_cast<iconv_t>(-1)) {
@@ -45,13 +47,19 @@ std::string bufferToString(std::istream &buffer, size_t size, iconv_t conv)
         throw std::runtime_error("corrupted PReg file.");
     }
 
-    return convert<char, char16_t>(source, conv);
+    auto result = convert<char, char16_t>(source, conv);
+    if (custom_conv) {
+        iconv_close(conv);
+    }
+    return std::move(result);
 }
 
 size_t stringToBuffer(std::ostream &buffer, const std::string &source, iconv_t conv)
 {
+    bool custom_conv = false;
     if (conv == nullptr) {
         conv = iconv_open("UTF-16LE", "UTF-8");
+        custom_conv = true;
     }
 
     if (conv == reinterpret_cast<iconv_t>(-1)) {
@@ -64,16 +72,22 @@ size_t stringToBuffer(std::ostream &buffer, const std::string &source, iconv_t c
                  (converted.size() + 1) * sizeof(char16_t));
     check_stream(buffer);
 
+    if (custom_conv) {
+        iconv_close(conv);
+    }
     return (converted.size() + 1) * sizeof(char16_t);
 }
 
 std::vector<std::string> bufferToStrings(std::istream &buffer, size_t size, iconv_t conv)
 {
+    bool custom_conv = false;
+
     if (size == 0) {
         return {};
     }
     if (conv == nullptr) {
         conv = iconv_open("UTF-8", "UTF-16LE");
+        custom_conv = true;
     }
 
     if (conv == reinterpret_cast<iconv_t>(-1)) {
@@ -110,6 +124,9 @@ std::vector<std::string> bufferToStrings(std::istream &buffer, size_t size, icon
         found = current;
     }
 
+    if (custom_conv) {
+        iconv_close(conv);
+    }
     return result;
 }
 
