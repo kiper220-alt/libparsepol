@@ -88,7 +88,14 @@ T bufferToIntegral(std::istream &buffer)
 
     buffer.read(reinterpret_cast<char *>(&num), sizeof(T));
     if (buffer.fail()) {
-        throw std::runtime_error("can't read buffer");
+        if (buffer.eof()) {
+            throw std::runtime_error(
+                    "LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                    + ", Failed to read integral number from buffer, EOF was encountered.");
+        }
+        throw std::runtime_error(
+                "LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                + ", Failed to read integral number from buffer, error was encountered.");
     }
     if constexpr (LE) {
         return leToNative<T>(num);
@@ -115,7 +122,9 @@ void integralToBuffer(std::ostream &buffer, T num)
 
     buffer.write(reinterpret_cast<char *>(&num), sizeof(T));
     if (buffer.fail()) {
-        throw std::runtime_error("can't read buffer");
+        throw std::runtime_error(
+                "LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                + ", Failed to write integral number to buffer, error was encountered.");
     }
 }
 #endif // PREGPARSER_BINARY

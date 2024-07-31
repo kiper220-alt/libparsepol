@@ -158,7 +158,8 @@ void PRegParserPrivate::parseHeader(std::istream &stream)
     const uint32_t normal_version = *reinterpret_cast<const uint32_t *>(&valid_header[4]);
 
     if (signature != normal_signature && version != normal_version) {
-        throw std::runtime_error("corrupted PReg file.");
+        throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                 + ", Encountered with invalid header.");
     }
 }
 
@@ -211,7 +212,8 @@ std::string PRegParserPrivate::getKey(std::istream &stream)
 
     // Key from Keypath must contain 1 or more symbols.
     if (key.empty() || (data != 0 && data != 0x5C)) {
-        throw std::runtime_error("corrupted PReg file.");
+        throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                 + ", Unexpected symbol with code " + std::to_string(data) + ".");
     }
 
     // Remove last symbol
@@ -238,8 +240,11 @@ std::string PRegParserPrivate::getKeypath(std::istream &stream)
             break;
         }
 
+        // This if never be executed, but for safety i use it
         if (sym != 0x5C) {
-            throw std::runtime_error("corrupted PReg file.");
+            throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                     + ", Unexpected symbol with code " + std::to_string(sym)
+                                     + ".");
         }
 
         keyPath.push_back('\\');
@@ -263,7 +268,9 @@ std::string PRegParserPrivate::getValue(std::istream &stream)
 
         // Check maximum value length
         if (result.length() == 259) {
-            throw std::runtime_error("corrupted PReg file.");
+            throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                     + ", Unexpected symbol with code " + std::to_string(data)
+                                     + ".");
         }
 
         result.push_back(data);
@@ -284,7 +291,8 @@ PolicyData PRegParserPrivate::getData(std::istream &stream, PolicyRegType type, 
 {
     switch (type) {
     case PolicyRegType::REG_NONE:
-        throw std::runtime_error("this case cannot be called in this place. WTF???");
+        throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                 + ", Unexpected type REG_NONE.");
     case PolicyRegType::REG_SZ:
     case PolicyRegType::REG_EXPAND_SZ:
     case PolicyRegType::REG_LINK:
@@ -326,27 +334,37 @@ void PRegParserPrivate::insertInstruction(std::istream &stream, PolicyTree &tree
 
     std::string value = getValue(stream);
 
-    check_sym(stream, ';');
+    try {
+        check_sym(stream, ';');
 
-    instruction.type = getType(stream);
+        instruction.type = getType(stream);
 
-    check_sym(stream, ';');
+        check_sym(stream, ';');
 
-    dataSize = getSize(stream);
+        dataSize = getSize(stream);
 
-    check_sym(stream, ';');
+        check_sym(stream, ';');
 
-    instruction.data = getData(stream, instruction.type, dataSize);
+        instruction.data = getData(stream, instruction.type, dataSize);
 
-    check_sym(stream, ']');
+        check_sym(stream, ']');
 
-    if (tree.find(keyPath) == tree.end()) {
-        tree[keyPath] = {};
+        if (tree.find(keyPath) == tree.end()) {
+            tree[keyPath] = {};
+        }
+        if (tree[keyPath].find(value) != tree[keyPath].end()) {
+            throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                     + ", Instruction with key: " + keyPath + ", value: " + value
+                                     + " already exists.");
+        }
+        tree[keyPath][value] = std::move(instruction);
+
+    } catch (const std::exception &e) {
+        throw std::runtime_error(std::string(e.what()) + "\nLINE: " + std::to_string(__LINE__)
+                                 + ", FILE: " + __FILE__
+                                 + ", Error was encountered wile parsing instruction with key: "
+                                 + keyPath + ", value: " + value);
     }
-    if (tree[keyPath].find(value) != tree[keyPath].end()) {
-        throw std::runtime_error("corrupted PReg file.");
-    }
-    tree[keyPath][value] = std::move(instruction);
 }
 
 std::stringstream PRegParserPrivate::getDataStream(const PolicyData &data, PolicyRegType type)
@@ -386,9 +404,14 @@ std::stringstream PRegParserPrivate::getDataStream(const PolicyData &data, Polic
         break;
 
     case PolicyRegType::REG_NONE:
+        throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                 + ", Unexpected type REG_NONE.");
     default:
-        throw std::runtime_error("this case cannot be called in this place. WTF???");
+        throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                 + ", Unexpected type UNKNOWN("
+                                 + std::to_string(static_cast<size_t>(type)) + ".");
     }
+
     return stream;
 }
 

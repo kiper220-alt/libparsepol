@@ -37,7 +37,8 @@ void testCase(std::string filename)
 
     if (pol != pol2) {
         std::cout << "`" << filename << "` is rewrite: FAIL" << std::endl;
-        throw std::runtime_error("rewrite failed");
+        throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                 + ", Encountered with invalid parser/serializer work.");
     }
 
     std::cout << "`" << filename << "` is rewrite: OK" << std::endl;

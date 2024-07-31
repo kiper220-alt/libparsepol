@@ -20,42 +20,49 @@
 
 #ifndef PREGPARSER_COMMON
 #define PREGPARSER_COMMON
-#define must_present(target, source)                             \
-    {                                                            \
-        auto data = source;                                      \
-        if (!data.has_value()) {                                 \
-            throw std::runtime_error("can't read/write buffer"); \
-        }                                                        \
-        target = *data;                                          \
-    }
 
-#define check_stream(target)                                     \
-    {                                                            \
-        if (target.fail()) {                                     \
-            throw std::runtime_error("can't read/write buffer"); \
-        }                                                        \
+#define check_stream(target)                                                                       \
+    {                                                                                              \
+        if (target.fail()) {                                                                       \
+            if (target.eof()) {                                                                    \
+                throw std::runtime_error("LINE: " + std::to_string(__LINE__)                       \
+                                         + ", FILE: " + __FILE__                                   \
+                                         + ", Failed to read/write buffer, EOF was encountered."); \
+            }                                                                                      \
+            throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__   \
+                                     + ", Failed to read/write buffer, error was encountered.");   \
+        }                                                                                          \
     }
-#define check_sym(target, sym)                                                        \
-    {                                                                                 \
-        char16_t buff;                                                                \
-                                                                                      \
-        target.read(reinterpret_cast<char *>(&buff), 2);                              \
-        buff = leToNative(buff);                                                      \
-                                                                                      \
-        if (target.fail()) {                                                          \
-            throw std::runtime_error("can't read/write buffer");                      \
-        }                                                                             \
-        if (buff != sym) {                                                            \
-            throw std::runtime_error(std::string({ sym, '\x00' }) + " was expected"); \
-        }                                                                             \
+#define check_sym(target, sym)                                                                     \
+    {                                                                                              \
+        char16_t buff;                                                                             \
+                                                                                                   \
+        target.read(reinterpret_cast<char *>(&buff), 2);                                           \
+        buff = leToNative(buff);                                                                   \
+                                                                                                   \
+        if (target.fail()) {                                                                       \
+            if (target.eof()) {                                                                    \
+                throw std::runtime_error("LINE: " + std::to_string(__LINE__)                       \
+                                         + ", FILE: " + __FILE__                                   \
+                                         + ", Failed to read/write buffer, EOF was encountered."); \
+            }                                                                                      \
+            throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__   \
+                                     + ", Failed to read/write buffer, error was encountered.");   \
+        }                                                                                          \
+        if (buff != sym) {                                                                         \
+            throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__   \
+                                     + ", Unexpected symbol" + std::string({ sym, '\x00' })        \
+                                     + ".");                                                       \
+        }                                                                                          \
     }
-#define write_sym(target, sym)                                   \
-    {                                                            \
-        char16_t buff = leToNative(char16_t(sym));               \
-        target.write(reinterpret_cast<char *>(&buff), 2);        \
-        if (target.fail()) {                                     \
-            throw std::runtime_error("can't read/write buffer"); \
-        }                                                        \
+#define write_sym(target, sym)                                                                   \
+    {                                                                                            \
+        char16_t buff = leToNative(char16_t(sym));                                               \
+        target.write(reinterpret_cast<char *>(&buff), 2);                                        \
+        if (target.fail()) {                                                                     \
+            throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__ \
+                                     + ", Failed to read/write buffer, error was encountered."); \
+        }                                                                                        \
     }
 
 #endif // PREGPARSER_COMMON

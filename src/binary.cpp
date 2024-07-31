@@ -31,7 +31,9 @@ std::string bufferToString(std::istream &buffer, size_t size, iconv_t conv)
     }
 
     if (conv == reinterpret_cast<iconv_t>(-1)) {
-        throw std::runtime_error("can't initialize iconv");
+        throw std::runtime_error(
+                "LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                + ", Encountered with the inability to create a iconv descriptor.");
     }
 
     std::basic_string<char16_t> source((size / 2) - 1, '\0');
@@ -44,7 +46,8 @@ std::string bufferToString(std::istream &buffer, size_t size, iconv_t conv)
 
     // Check that the buffer ends with the two '\0'.
     if (source.data()[(size / 2) - 1] != 0) {
-        throw std::runtime_error("corrupted PReg file.");
+        throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                 + ", Encountered with invalid UTF-16LE buffer.");
     }
 
     auto result = convert<char, char16_t>(source, conv);
@@ -63,7 +66,9 @@ size_t stringToBuffer(std::ostream &buffer, const std::string &source, iconv_t c
     }
 
     if (conv == reinterpret_cast<iconv_t>(-1)) {
-        throw std::runtime_error("can't initialize iconv");
+        throw std::runtime_error(
+                "LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                + ", Encountered with the inability to create a iconv descriptor.");
     }
 
     std::basic_string<char16_t> converted = convert<char16_t, char>(source, conv);
@@ -91,7 +96,9 @@ std::vector<std::string> bufferToStrings(std::istream &buffer, size_t size, icon
     }
 
     if (conv == reinterpret_cast<iconv_t>(-1)) {
-        throw std::runtime_error("can't initialize iconv");
+        throw std::runtime_error(
+                "LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                + ", Encountered with the inability to create a iconv descriptor.");
     }
 
     std::vector<std::string> result;
