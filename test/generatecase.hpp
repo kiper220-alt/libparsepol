@@ -19,6 +19,7 @@
  */
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -27,42 +28,77 @@
 #include <encoding.hpp>
 #include <parser.hpp>
 
-std::string generateRandomKey(size_t length)
+bool equal(const PolicyFile &a, const PolicyFile &b)
+{
+    if (!a.body.has_value() || !b.body.has_value()) {
+        return false;
+    }
+    if (b.body->instructions.size() != a.body->instructions.size()) {
+        std::cerr << "error: `" << a.body->instructions.size() << "` != `"
+                  << b.body->instructions.size() << "`" << std::endl;
+        return false;
+    }
+
+    for (size_t i = 0; i < a.body->instructions.size(); i++) {
+        if (a.body->instructions[i].key != b.body->instructions[i].key) {
+            std::cerr << "error: `" << a.body->instructions[i].key << "` != `"
+                      << b.body->instructions[i].key << "`" << std::endl;
+            return false;
+        }
+        if (a.body->instructions[i].value != b.body->instructions[i].value) {
+            std::cerr << "error: `" << a.body->instructions[i].value << "` != `"
+                      << b.body->instructions[i].value << "`" << std::endl;
+            return false;
+        }
+        if (a.body->instructions[i].type != b.body->instructions[i].type) {
+            std::cerr << "error: `" << static_cast<int>(a.body->instructions[i].type) << "` != `"
+                      << static_cast<int>(b.body->instructions[i].type) << "`" << std::endl;
+            return false;
+        }
+        if (a.body->instructions[i].data != b.body->instructions[i].data) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+std::string generateRandomKey(size_t length, std::mt19937 &gen)
 {
     std::string key;
     key.resize(length);
     for (size_t i = 0; i < length; ++i) {
         // [0x20-\x5B] | [\x5D-\x7E]
-        key[i] = (rand() % 0x5E) + 0x20;
+        key[i] = (gen() % 0x5E) + 0x20;
         key[i] = key[i] >= 0x5c ? key[i] + 1 : key[i];
     }
     return key;
 }
 
-std::string generateRandomKeypath()
+std::string generateRandomKeypath(std::mt19937 &gen)
 {
     std::string keyPath;
-    keyPath += generateRandomKey((rand() % 99) + 1);
+    keyPath += generateRandomKey((gen() % 99) + 1, gen);
 
     while ((rand() % 5) >= 3) {
         keyPath += '\\';
-        keyPath += generateRandomKey((rand() % 99) + 1);
+        keyPath += generateRandomKey((gen() % 99) + 1, gen);
     }
 
     return keyPath;
 }
 
-std::string generateRandomValue()
+std::string generateRandomValue(std::mt19937 &gen)
 {
     std::string value;
-    value.resize((rand() % 99) + 1);
+    value.resize((gen() % 99) + 1);
     for (size_t i = 0; i < value.size(); ++i) {
-        value[i] = (rand() % 0x5E) + 0x20;
+        value[i] = (gen() % 0x5E) + 0x20;
     }
     return value;
 }
 
-PolicyRegType generateRandomType()
+PolicyRegType generateRandomType(std::mt19937 &gen)
 {
     switch (rand() % 7) {
     case 0:
@@ -85,7 +121,7 @@ PolicyRegType generateRandomType()
     return PolicyRegType::REG_BINARY;
 }
 
-PolicyData generateRandomData(PolicyRegType type)
+PolicyData generateRandomData(PolicyRegType type, std::mt19937 &gen)
 {
     iconv_t conv = iconv_open("UTF-8", "UTF-32LE");
     if (conv == (decltype(conv))-1) {
@@ -99,9 +135,11 @@ PolicyData generateRandomData(PolicyRegType type)
         std::basic_string<char32_t> data;
         data.resize(rand() % 100);
         for (size_t i = 0; i < data.size(); ++i) {
-            data[i] = (rand() % 0x5E) + 0x20;
+            data[i] = (gen() % 0x5E) + 0x20;
         }
-        return convert<char, char32_t>(data, conv);
+        auto result = convert<char, char32_t>(data, conv);
+        iconv_close(conv);
+        return result;
     }
 
     case PolicyRegType::REG_MULTI_SZ: {
@@ -111,56 +149,72 @@ PolicyData generateRandomData(PolicyRegType type)
             std::basic_string<char32_t> data;
             data.resize((rand() % 100) + 1);
             for (size_t i = 0; i < data.size(); ++i) {
-                data[i] = (rand() % 0x5E) + 0x20;
+                data[i] = (gen() % 0x5E) + 0x20;
             }
             data1.push_back(convert<char, char32_t>(data, conv));
         }
+        iconv_close(conv);
         return data1;
     }
 
     case PolicyRegType::REG_BINARY: {
         std::vector<uint8_t> data;
-        size_t count = rand() % 100;
+        size_t count = gen() % 100;
         for (size_t i = 0; i < count; ++i) {
-            data.push_back((rand() % 255) + 1);
+            data.push_back((gen() % 255) + 1);
         }
+        iconv_close(conv);
         return data;
     }
 
     case PolicyRegType::REG_DWORD_LITTLE_ENDIAN:
+        iconv_close(conv);
         return uint32_t(rand() % 10'000'000);
     case PolicyRegType::REG_DWORD_BIG_ENDIAN:
+        iconv_close(conv);
         return uint32_t(rand() % 10'000'000);
     case PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
+        iconv_close(conv);
         return uint64_t(rand() % 10'000'000);
     case PolicyRegType::REG_QWORD_BIG_ENDIAN:
+        iconv_close(conv);
         return uint64_t(rand() % 10'000'000);
     default:
+        iconv_close(conv);
         return {};
     }
 }
 
-void generateCase(size_t last)
+void generateCase(size_t last, size_t seed = -1)
 {
+    std::mt19937 gen;
+    std::uniform_int_distribution<std::mt19937::result_type> dist(0, 500);
     auto parser = createPregParser();
     size_t current = 0;
-    // set seed
-    srand(time(0));
+
+    if (seed == -1) {
+        std::random_device dev;
+        seed = dev();
+        gen.seed(seed);
+    } else {
+        gen.seed(seed);
+    }
+
+    std::cout << std::endl << "Begin test with generating cases. Seed: " << seed << std::endl;
 
     while (current <= last) {
         std::stringstream file;
-        auto parser = createPregParser();
 
         // Generate case
         PolicyFile data;
         data.body = std::make_optional<PolicyBody>();
-        size_t el = rand() % 100; // random number between 0 and 100
+        size_t el = dist(gen);
         for (size_t i = 0; i < el; i++) {
             PolicyInstruction instruction;
-            instruction.key = generateRandomKeypath();
-            instruction.value = generateRandomValue();
-            instruction.type = generateRandomType();
-            instruction.data = generateRandomData(instruction.type);
+            instruction.key = generateRandomKeypath(gen);
+            instruction.value = generateRandomValue(gen);
+            instruction.type = generateRandomType(gen);
+            instruction.data = generateRandomData(instruction.type, gen);
             data.body->instructions.push_back(instruction);
         }
 

@@ -30,9 +30,8 @@ int main()
 {
     testEndian();
     testBinary();
-    testCase1();
-    testCase2();
-    testCase3();
+    testCase("case1.pol");
+    testCase("case2.pol");
     generateCase(100);
 
     return 0;
