@@ -37,116 +37,50 @@ static inline bool isValueCharacter(uint8_t sym)
     return sym >= 0x20 && sym <= 0x7E;
 }
 
-class PRegParserPrivate : public PRegParser
+PRegParser::PRegParser()
 {
-private:
-    /*!
-     * \brief Check regex `\x50\x52\x65\x67\x01\x00\x00\x00`
-     */
-    void parseHeader(std::istream &stream);
-    /*!
-     * \brief Check regex `(.{4})` and return first group as uint32_t (LE, it will be converted to
-     * native)
-     */
-    uint32_t getSize(std::istream &stream);
-    /*!
-     * \brief Convert binary data from stream to PolicyData
-     */
-    PolicyData getData(std::istream &stream, PolicyRegType type, uint32_t size);
-    /*!
-     * \brief Check 32bit LE regex `([\x1\x2\x3\x4\x5\x6\x7\x8\x9\xA\xB\xC])` and return first
-     * group as Type
-     */
-    PolicyRegType getType(std::istream &stream);
-    /*!
-     * \brief Matches regex `([\x20-\x5B\x5D-\x7E]\x00)+` and return
-     * string as result (UTF-16LE will be converted to UTF-8)
-     */
-    std::string getKey(std::istream &stream);
-    /*!
-     * \brief Matches regex
-     * `((:?([\x20-\x5B\x5D-\x7E]\x00)+)(:?\x5C\x00([\x20-\x5B\x5D-\x7E]\x00)+)+)` and return first
-     * group as result
-     */
-    std::string getKeypath(std::istream &stream);
-    /*!
-     * \brief Matches regex `((:?[\x20-\x7E]\x00){1,259})` and return first group as result
-     * (UTF-16LE will be converted to UTF-8)
-     */
-    std::string getValue(std::istream &stream);
-    /*!
-     * \brief Matches ABNF `LBracket KeyPath SC Value SC Type SC Size SC Data RBracket`,
-     * where LBracket `\x5B\x00`, RBracket `\x5D\x00`, SC `\x3B\x00`. Return reduced structure
-     */
-    void insertInstruction(std::istream &stream, PolicyTree &tree);
+    this->m_iconv_read_id = ::iconv_open("UTF-8", "UTF-16LE");
+    this->m_iconv_write_id = ::iconv_open("UTF-16LE", "UTF-8");
+}
 
-    /*!
-     * \brief Put `\x50\x52\x65\x67\x01\x00\x00\x00` into stream
-     */
-    void writeHeader(std::ostream &stream);
-    /*!
-     * \brief Put instruction, with ABNF
-     * `LBracket KeyPath SC Value SC Type SC Size SC Data RBracket`,
-     * where LBracket `\x5B\x00`, RBracket `\x5D\x00`, SC `\x3B\x00`, into stream.
-     */
-    void writeInstruction(std::ostream &stream, const PolicyInstruction &instruction,
-                          std::string key, std::string value);
+PolicyFile PRegParser::parse(std::istream &stream)
+{
+    PolicyBody body;
 
-    /*!
-     * \brief Put PolicyRegData by PolicyRegType into stringstream
-     */
-    std::stringstream getDataStream(const PolicyData &data, PolicyRegType type);
+    parseHeader(stream);
 
-public:
-    PRegParserPrivate()
-    {
-        this->m_iconv_read_id = ::iconv_open("UTF-8", "UTF-16LE");
-        this->m_iconv_write_id = ::iconv_open("UTF-16LE", "UTF-8");
-    }
-
-    virtual PolicyFile parse(std::istream &stream) override
-    {
-        PolicyBody body;
-
-        parseHeader(stream);
-
+    stream.peek();
+    while (!stream.eof()) {
+        insertInstruction(stream, body.instructions);
         stream.peek();
-        while (!stream.eof()) {
-            insertInstruction(stream, body.instructions);
-            stream.peek();
-        }
-
-        return { body };
     }
 
-    virtual bool write(std::ostream &stream, const PolicyFile &file) override
-    {
-        if (!file.body.has_value()) {
-            return true;
-        }
+    return { body };
+}
 
-        writeHeader(stream);
-        for (const auto &[key, records] : file.body->instructions) {
-            for (const auto &[value, instruction] : records) {
-                writeInstruction(stream, instruction, key, value);
-            }
-        }
-
+bool PRegParser::write(std::ostream &stream, const PolicyFile &file)
+{
+    if (!file.body.has_value()) {
         return true;
     }
 
-    virtual ~PRegParserPrivate()
-    {
-        ::iconv_close(this->m_iconv_read_id);
-        ::iconv_close(this->m_iconv_write_id);
+    writeHeader(stream);
+    for (const auto &[key, records] : file.body->instructions) {
+        for (const auto &[value, instruction] : records) {
+            writeInstruction(stream, instruction, key, value);
+        }
     }
 
-private:
-    ::iconv_t m_iconv_read_id;
-    ::iconv_t m_iconv_write_id;
-};
+    return true;
+}
 
-void PRegParserPrivate::parseHeader(std::istream &stream)
+PRegParser::~PRegParser()
+{
+    ::iconv_close(this->m_iconv_read_id);
+    ::iconv_close(this->m_iconv_write_id);
+}
+
+void PRegParser::parseHeader(std::istream &stream)
 {
     char header[8];
     stream.read(header, 8);
@@ -163,12 +97,12 @@ void PRegParserPrivate::parseHeader(std::istream &stream)
     }
 }
 
-uint32_t PRegParserPrivate::getSize(std::istream &stream)
+uint32_t PRegParser::getSize(std::istream &stream)
 {
     return bufferToIntegral<uint32_t, true>(stream);
 }
 
-PolicyRegType PRegParserPrivate::getType(std::istream &stream)
+PolicyRegType PRegParser::getType(std::istream &stream)
 {
     uint32_t num = bufferToIntegral<uint32_t, true>(stream);
 
@@ -193,7 +127,7 @@ PolicyRegType PRegParserPrivate::getType(std::istream &stream)
     return static_cast<PolicyRegType>(num);
 }
 
-std::string PRegParserPrivate::getKey(std::istream &stream)
+std::string PRegParser::getKey(std::istream &stream)
 {
     std::string key;
     char16_t data;
@@ -222,7 +156,7 @@ std::string PRegParserPrivate::getKey(std::istream &stream)
     return { std::move(key) };
 }
 
-std::string PRegParserPrivate::getKeypath(std::istream &stream)
+std::string PRegParser::getKeypath(std::istream &stream)
 {
     std::string keyPath;
     char16_t sym = 0;
@@ -253,7 +187,7 @@ std::string PRegParserPrivate::getKeypath(std::istream &stream)
     return { keyPath };
 }
 
-std::string PRegParserPrivate::getValue(std::istream &stream)
+std::string PRegParser::getValue(std::istream &stream)
 {
     std::string result;
     char16_t data;
@@ -287,7 +221,7 @@ std::string PRegParserPrivate::getValue(std::istream &stream)
     return { std::move(result) };
 }
 
-PolicyData PRegParserPrivate::getData(std::istream &stream, PolicyRegType type, uint32_t size)
+PolicyData PRegParser::getData(std::istream &stream, PolicyRegType type, uint32_t size)
 {
     switch (type) {
     case PolicyRegType::REG_NONE:
@@ -321,7 +255,7 @@ PolicyData PRegParserPrivate::getData(std::istream &stream, PolicyRegType type, 
     return {};
 }
 
-void PRegParserPrivate::insertInstruction(std::istream &stream, PolicyTree &tree)
+void PRegParser::insertInstruction(std::istream &stream, PolicyTree &tree)
 {
     PolicyInstruction instruction;
     uint32_t dataSize;
@@ -367,7 +301,7 @@ void PRegParserPrivate::insertInstruction(std::istream &stream, PolicyTree &tree
     }
 }
 
-std::stringstream PRegParserPrivate::getDataStream(const PolicyData &data, PolicyRegType type)
+std::stringstream PRegParser::getDataStream(const PolicyData &data, PolicyRegType type)
 {
     std::stringstream stream;
 
@@ -415,13 +349,13 @@ std::stringstream PRegParserPrivate::getDataStream(const PolicyData &data, Polic
     return stream;
 }
 
-void PRegParserPrivate::writeHeader(std::ostream &stream)
+void PRegParser::writeHeader(std::ostream &stream)
 {
     stream.write(valid_header, sizeof(valid_header));
 }
 
-void PRegParserPrivate::writeInstruction(std::ostream &stream, const PolicyInstruction &instruction,
-                                         std::string key, std::string value)
+void PRegParser::writeInstruction(std::ostream &stream, const PolicyInstruction &instruction,
+                                  std::string key, std::string value)
 {
     write_sym(stream, '[');
 
@@ -451,5 +385,5 @@ void PRegParserPrivate::writeInstruction(std::ostream &stream, const PolicyInstr
 
 std::unique_ptr<PRegParser> createPregParser()
 {
-    return std::make_unique<PRegParserPrivate>();
+    return std::make_unique<PRegParser>();
 }

@@ -28,6 +28,8 @@
 #include <variant>
 #include <vector>
 
+#include <iconv.h>
+
 enum class PolicyRegType {
     REG_NONE,
     /* Null-terminated-string */
@@ -103,10 +105,73 @@ typedef struct PolicyFile
 
 class PRegParser
 {
+private:
+    /*!
+     * \brief Check regex `\x50\x52\x65\x67\x01\x00\x00\x00`
+     */
+    void parseHeader(std::istream &stream);
+    /*!
+     * \brief Check regex `(.{4})` and return first group as uint32_t (LE, it will be converted to
+     * native)
+     */
+    uint32_t getSize(std::istream &stream);
+    /*!
+     * \brief Convert binary data from stream to PolicyData
+     */
+    PolicyData getData(std::istream &stream, PolicyRegType type, uint32_t size);
+    /*!
+     * \brief Check 32bit LE regex `([\x1\x2\x3\x4\x5\x6\x7\x8\x9\xA\xB\xC])` and return first
+     * group as Type
+     */
+    PolicyRegType getType(std::istream &stream);
+    /*!
+     * \brief Matches regex `([\x20-\x5B\x5D-\x7E]\x00)+` and return
+     * string as result (UTF-16LE will be converted to UTF-8)
+     */
+    std::string getKey(std::istream &stream);
+    /*!
+     * \brief Matches regex
+     * `((:?([\x20-\x5B\x5D-\x7E]\x00)+)(:?\x5C\x00([\x20-\x5B\x5D-\x7E]\x00)+)+)` and return first
+     * group as result
+     */
+    std::string getKeypath(std::istream &stream);
+    /*!
+     * \brief Matches regex `((:?[\x20-\x7E]\x00){1,259})` and return first group as result
+     * (UTF-16LE will be converted to UTF-8)
+     */
+    std::string getValue(std::istream &stream);
+    /*!
+     * \brief Matches ABNF `LBracket KeyPath SC Value SC Type SC Size SC Data RBracket`,
+     * where LBracket `\x5B\x00`, RBracket `\x5D\x00`, SC `\x3B\x00`. Return reduced structure
+     */
+    void insertInstruction(std::istream &stream, PolicyTree &tree);
+
+    /*!
+     * \brief Put `\x50\x52\x65\x67\x01\x00\x00\x00` into stream
+     */
+    void writeHeader(std::ostream &stream);
+    /*!
+     * \brief Put instruction, with ABNF
+     * `LBracket KeyPath SC Value SC Type SC Size SC Data RBracket`,
+     * where LBracket `\x5B\x00`, RBracket `\x5D\x00`, SC `\x3B\x00`, into stream.
+     */
+    void writeInstruction(std::ostream &stream, const PolicyInstruction &instruction,
+                          std::string key, std::string value);
+
+    /*!
+     * \brief Put PolicyRegData by PolicyRegType into stringstream
+     */
+    std::stringstream getDataStream(const PolicyData &data, PolicyRegType type);
+
 public:
-    virtual PolicyFile parse(std::istream &stream) = 0;
-    virtual bool write(std::ostream &stream, const PolicyFile &file) = 0;
-    virtual ~PRegParser() = default;
+    PRegParser();
+    virtual PolicyFile parse(std::istream &stream);
+    virtual bool write(std::ostream &stream, const PolicyFile &file);
+    virtual ~PRegParser();
+
+private:
+    ::iconv_t m_iconv_read_id;
+    ::iconv_t m_iconv_write_id;
 };
 
 std::unique_ptr<PRegParser> createPregParser();
