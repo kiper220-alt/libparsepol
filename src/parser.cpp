@@ -78,7 +78,7 @@ private:
      * \brief Matches ABNF `LBracket KeyPath SC Value SC Type SC Size SC Data RBracket`,
      * where LBracket `\x5B\x00`, RBracket `\x5D\x00`, SC `\x3B\x00`. Return reduced structure
      */
-    PolicyInstruction getInstruction(std::istream &stream);
+    void insertInstruction(std::istream &stream, PolicyTree &tree);
 
     /*!
      * \brief Put `\x50\x52\x65\x67\x01\x00\x00\x00` into stream
@@ -89,7 +89,13 @@ private:
      * `LBracket KeyPath SC Value SC Type SC Size SC Data RBracket`,
      * where LBracket `\x5B\x00`, RBracket `\x5D\x00`, SC `\x3B\x00`, into stream.
      */
-    void writeInstruction(std::ostream &stream, const PolicyInstruction &instruction);
+    void writeInstruction(std::ostream &stream, const PolicyInstruction &instruction,
+                          std::string key, std::string value);
+
+    /*!
+     * \brief Put PolicyRegData by PolicyRegType into stringstream
+     */
+    std::stringstream getDataStream(const PolicyData &data, PolicyRegType type);
 
 public:
     PRegParserPrivate()
@@ -106,9 +112,7 @@ public:
 
         stream.peek();
         while (!stream.eof()) {
-            auto instruction = getInstruction(stream);
-
-            body.instructions.emplace_back(instruction);
+            insertInstruction(stream, body.instructions);
             stream.peek();
         }
 
@@ -122,8 +126,10 @@ public:
         }
 
         writeHeader(stream);
-        for (const auto &instruction : file.body->instructions) {
-            writeInstruction(stream, instruction);
+        for (const auto &[key, records] : file.body->instructions) {
+            for (const auto &[value, instruction] : records) {
+                writeInstruction(stream, instruction, key, value);
+            }
         }
 
         return true;
@@ -307,18 +313,18 @@ PolicyData PRegParserPrivate::getData(std::istream &stream, PolicyRegType type, 
     return {};
 }
 
-PolicyInstruction PRegParserPrivate::getInstruction(std::istream &stream)
+void PRegParserPrivate::insertInstruction(std::istream &stream, PolicyTree &tree)
 {
     PolicyInstruction instruction;
     uint32_t dataSize;
 
     check_sym(stream, '[');
 
-    instruction.key = getKeypath(stream);
+    std::string keyPath = getKeypath(stream);
 
     check_sym(stream, ';');
 
-    instruction.value = getValue(stream);
+    std::string value = getValue(stream);
 
     check_sym(stream, ';');
 
@@ -334,10 +340,16 @@ PolicyInstruction PRegParserPrivate::getInstruction(std::istream &stream)
 
     check_sym(stream, ']');
 
-    return instruction;
+    if (tree.find(keyPath) == tree.end()) {
+        tree[keyPath] = {};
+    }
+    if (tree[keyPath].find(value) != tree[keyPath].end()) {
+        throw std::runtime_error("corrupted PReg file.");
+    }
+    tree[keyPath][value] = std::move(instruction);
 }
 
-std::optional<std::stringstream> getDataStream(const PolicyData &data, PolicyRegType type)
+std::stringstream PRegParserPrivate::getDataStream(const PolicyData &data, PolicyRegType type)
 {
     std::stringstream stream;
 
@@ -345,7 +357,7 @@ std::optional<std::stringstream> getDataStream(const PolicyData &data, PolicyReg
     case PolicyRegType::REG_SZ:
     case PolicyRegType::REG_EXPAND_SZ:
     case PolicyRegType::REG_LINK:
-        stringToBuffer(stream, std::get<std::string>(data));
+        stringToBuffer(stream, std::get<std::string>(data), this->m_iconv_write_id);
         break;
 
     case PolicyRegType::REG_BINARY:
@@ -363,7 +375,7 @@ std::optional<std::stringstream> getDataStream(const PolicyData &data, PolicyReg
     case PolicyRegType::REG_RESOURCE_LIST:
     case PolicyRegType::REG_FULL_RESOURCE_DESCRIPTOR: // ????
     case PolicyRegType::REG_RESOURCE_REQUIREMENTS_LIST:
-        stringsToBuffer(stream, std::get<std::vector<std::string>>(data));
+        stringsToBuffer(stream, std::get<std::vector<std::string>>(data), this->m_iconv_write_id);
         break;
 
     case PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
@@ -375,7 +387,7 @@ std::optional<std::stringstream> getDataStream(const PolicyData &data, PolicyReg
 
     case PolicyRegType::REG_NONE:
     default:
-        return {};
+        throw std::runtime_error("this case cannot be called in this place. WTF???");
     }
     return stream;
 }
@@ -385,15 +397,16 @@ void PRegParserPrivate::writeHeader(std::ostream &stream)
     stream.write(valid_header, sizeof(valid_header));
 }
 
-void PRegParserPrivate::writeInstruction(std::ostream &stream, const PolicyInstruction &instruction)
+void PRegParserPrivate::writeInstruction(std::ostream &stream, const PolicyInstruction &instruction,
+                                         std::string key, std::string value)
 {
     write_sym(stream, '[');
 
-    stringToBuffer(stream, instruction.key);
+    stringToBuffer(stream, key);
 
     write_sym(stream, ';');
 
-    stringToBuffer(stream, instruction.value);
+    stringToBuffer(stream, value);
 
     write_sym(stream, ';');
 
@@ -403,11 +416,11 @@ void PRegParserPrivate::writeInstruction(std::ostream &stream, const PolicyInstr
 
     auto dataStream = getDataStream(instruction.data, instruction.type);
 
-    integralToBuffer<uint32_t, true>(stream, static_cast<uint32_t>(dataStream->tellp()));
+    integralToBuffer<uint32_t, true>(stream, static_cast<uint32_t>(dataStream.tellp()));
 
     write_sym(stream, ';');
 
-    stream << dataStream->str();
+    stream << dataStream.str();
     check_stream(stream);
 
     write_sym(stream, ']');

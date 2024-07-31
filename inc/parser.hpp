@@ -24,6 +24,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -62,19 +63,41 @@ typedef std::variant<std::string, std::vector<std::string>, std::vector<uint8_t>
 
 typedef struct PolicyInstruction
 {
-    std::string key{};
-    std::string value{};
+    inline bool operator==(const PolicyInstruction &other) const
+    {
+        return type == other.type && data == other.data;
+    }
+    inline bool operator!=(const PolicyInstruction &other) const
+    {
+        return type != other.type && data != other.data;
+    }
+
     PolicyRegType type{};
     PolicyData data{};
 } PolicyInstruction;
 
+typedef std::unordered_map<std::string, std::unordered_map<std::string, PolicyInstruction>>
+        PolicyTree;
+
 typedef struct PolicyBody
 {
-    std::vector<PolicyInstruction> instructions{};
+    inline bool operator==(const PolicyBody &other) const
+    {
+        return instructions == other.instructions;
+    }
+    inline bool operator!=(const PolicyBody &other) const
+    {
+        return instructions != other.instructions;
+    }
+
+    PolicyTree instructions{};
 } PolicyBody;
 
 typedef struct PolicyFile
 {
+    inline bool operator==(const PolicyFile &other) const { return body == other.body; }
+    inline bool operator!=(const PolicyFile &other) const { return body != other.body; }
+
     std::optional<PolicyBody> body{};
 } PolicyFile;
 

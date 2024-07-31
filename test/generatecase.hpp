@@ -28,41 +28,6 @@
 #include <encoding.hpp>
 #include <parser.hpp>
 
-bool equal(const PolicyFile &a, const PolicyFile &b)
-{
-    if (!a.body.has_value() || !b.body.has_value()) {
-        return false;
-    }
-    if (b.body->instructions.size() != a.body->instructions.size()) {
-        std::cerr << "error: `" << a.body->instructions.size() << "` != `"
-                  << b.body->instructions.size() << "`" << std::endl;
-        return false;
-    }
-
-    for (size_t i = 0; i < a.body->instructions.size(); i++) {
-        if (a.body->instructions[i].key != b.body->instructions[i].key) {
-            std::cerr << "error: `" << a.body->instructions[i].key << "` != `"
-                      << b.body->instructions[i].key << "`" << std::endl;
-            return false;
-        }
-        if (a.body->instructions[i].value != b.body->instructions[i].value) {
-            std::cerr << "error: `" << a.body->instructions[i].value << "` != `"
-                      << b.body->instructions[i].value << "`" << std::endl;
-            return false;
-        }
-        if (a.body->instructions[i].type != b.body->instructions[i].type) {
-            std::cerr << "error: `" << static_cast<int>(a.body->instructions[i].type) << "` != `"
-                      << static_cast<int>(b.body->instructions[i].type) << "`" << std::endl;
-            return false;
-        }
-        if (a.body->instructions[i].data != b.body->instructions[i].data) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 std::string generateRandomKey(size_t length, std::mt19937 &gen)
 {
     std::string key;
@@ -211,18 +176,17 @@ void generateCase(size_t last, size_t seed = -1)
         size_t el = dist(gen);
         for (size_t i = 0; i < el; i++) {
             PolicyInstruction instruction;
-            instruction.key = generateRandomKeypath(gen);
-            instruction.value = generateRandomValue(gen);
             instruction.type = generateRandomType(gen);
             instruction.data = generateRandomData(instruction.type, gen);
-            data.body->instructions.push_back(instruction);
+            data.body->instructions[generateRandomKeypath(gen)][generateRandomValue(gen)] =
+                    std::move(instruction);
         }
 
         parser->write(file, data);
         file.seekg(0, std::ios::beg);
 
         auto test = parser->parse(file);
-        if (!equal(data, test)) {
+        if (data != test) {
             std::cerr << "error: one of generated files detect error in parser." << std::endl;
             assert(0);
         }

@@ -32,24 +32,13 @@ void testCase(std::string filename)
     auto parser = createPregParser();
     auto pol = parser->parse(file);
 
-    // After parsing file in fail state becouse reached end of file
-    file.clear();
-
-    file.seekg(0, std::ios::end);
-    size_t length1 = static_cast<size_t>(file.tellg());
-    size_t length2 = 0;
-    file.seekg(0, std::ios::beg);
-
     parser->write(stream, pol);
-    length2 = static_cast<size_t>(stream.tellp());
+    auto pol2 = parser->parse(stream);
 
-    std::vector<uint8_t> original = bufferToVector(file, length1);
-    std::vector<uint8_t> rewrited = bufferToVector(stream, length2);
-
-    if (original != rewrited) {
-        std::cerr << "ERROR: `" << filename << "` is not rewrited correctly." << std::endl;
-        std::cerr.flush();
-        throw std::runtime_error("error: `" + filename + "` detect error in parser.");
+    if (pol != pol2) {
+        std::cout << "`" << filename << "` is rewrite: FAIL" << std::endl;
+        throw std::runtime_error("rewrite failed");
     }
+
     std::cout << "`" << filename << "` is rewrite: OK" << std::endl;
 }
