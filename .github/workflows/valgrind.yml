@@ -1,0 +1,35 @@
+name: Valgrind
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    branches: [ "*" ]
+  pull_request:
+    types: [ opened, synchronize, ready_for_review ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  valgrind:
+    runs-on: ubuntu
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install valgrind and development dependencies
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y cmake libc6-dev valgrind
+    - name: Build
+      run: |
+        gcc --version
+        mkdir build
+        cd build
+        cmake ..
+        make -j `nproc`
+    - name: Test under valgrind
+      run: |
+        cd build
+        valgrind -q --error-exitcode=99 --leak-check=full ./test
+
