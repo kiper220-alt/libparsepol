@@ -26,7 +26,7 @@
 #include <optional>
 #include <vector>
 
-#include <encoding.hpp>
+#include <encoding.h>
 
 namespace pol {
 

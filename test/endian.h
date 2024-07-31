@@ -23,7 +23,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cinttypes>
-#include <encoding.hpp>
+#include <encoding.h>
 #include <iostream>
 #include <sstream>
 

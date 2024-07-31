@@ -18,11 +18,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <iostream>
-#include <parser.hpp>
+#include <parser.h>
 
-#include "./binary.hpp"
-#include "./endian.hpp"
-#include "./generatecase.hpp"
+#include "./binary.h"
+#include "./endian.h"
+#include "./generatecase.h"
 
 #include <iconv.h>
 

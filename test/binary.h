@@ -21,7 +21,7 @@
 #define PREGPARSER_TEST_BINARY
 
 #include <algorithm>
-#include <binary.hpp>
+#include <binary.h>
 #include <cassert>
 #include <iostream>
 #include <sstream>

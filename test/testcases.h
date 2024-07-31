@@ -22,7 +22,7 @@
 #include <iostream>
 #include <vector>
 
-#include <parser.hpp>
+#include <parser.h>
 
 void testCase(std::string filename)
 {

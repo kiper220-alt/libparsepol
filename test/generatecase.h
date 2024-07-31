@@ -24,9 +24,9 @@
 #include <string>
 #include <vector>
 
-#include "./testcases.hpp"
-#include <encoding.hpp>
-#include <parser.hpp>
+#include "./testcases.h"
+#include <encoding.h>
+#include <parser.h>
 
 std::string generateRandomKey(size_t length, std::mt19937 &gen)
 {

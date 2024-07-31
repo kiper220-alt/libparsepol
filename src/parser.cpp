@@ -20,9 +20,9 @@
 #include <sstream>
 #include <vector>
 
-#include <binary.hpp>
-#include <common.hpp>
-#include <parser.hpp>
+#include <binary.h>
+#include <common.h>
+#include <parser.h>
 
 namespace pol {
 
