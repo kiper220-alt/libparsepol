@@ -69,43 +69,36 @@ typedef struct PolicyInstruction
 {
     inline bool operator==(const PolicyInstruction &other) const
     {
-        return type == other.type && data == other.data;
+        return key == other.key && value == other.value && type == other.type && data == other.data;
     }
     inline bool operator!=(const PolicyInstruction &other) const
     {
-        return type != other.type && data != other.data;
+        return !this->operator==(other);
     }
 
     PolicyRegType type{};
     PolicyData data{};
+    std::string key{};
+    std::string value{};
 } PolicyInstruction;
 
-typedef std::unordered_map<std::string, std::unordered_map<std::string, PolicyInstruction>>
-        PolicyTree;
+typedef std::vector<PolicyInstruction> PolicyTree;
 
-typedef struct PolicyBody
+typedef struct PolicyFile
 {
-    inline bool operator==(const PolicyBody &other) const
+    inline bool operator==(const PolicyFile &other) const
     {
         return instructions == other.instructions;
     }
-    inline bool operator!=(const PolicyBody &other) const
+    inline bool operator!=(const PolicyFile &other) const
     {
         return instructions != other.instructions;
     }
 
     PolicyTree instructions{};
-} PolicyBody;
-
-typedef struct PolicyFile
-{
-    inline bool operator==(const PolicyFile &other) const { return body == other.body; }
-    inline bool operator!=(const PolicyFile &other) const { return body != other.body; }
-
-    std::optional<PolicyBody> body{};
 } PolicyFile;
 
-class PRegParser
+class PRegParser final
 {
 private:
     /*!
@@ -149,6 +142,26 @@ private:
     void insertInstruction(std::istream &stream, PolicyTree &tree);
 
     /*!
+     * \brief Matches regex `([\x20-\x5B\x5D-\x7E]\x00)+` and throws an
+     * std::runtime_error if it completely does not match the regex
+     */
+    void validateKey(std::string::const_iterator &begin, std::string::const_iterator &end);
+    /*!
+     * \brief Matches regex
+     * `((:?([\x20-\x5B\x5D-\x7E]\x00)+)(:?\x5C\x00([\x20-\x5B\x5D-\x7E]\x00)+)+)` and throws an
+     * std::runtime_error if it completely does not match the regex
+     */
+    void validateKeypath(std::string::const_iterator begin, std::string::const_iterator end);
+    /*!
+     * \brief Matches regex `((:?[\x20-\x7E]\x00){1,259})` and throws an
+     * std::runtime_error if it completely does not match the regex
+     */
+    void validateValue(std::string::const_iterator begin, std::string::const_iterator end);
+    /*!
+     * \brief Validate type and throw an std::runtime_error if it is invalid
+     */
+    void validateType(PolicyRegType type);
+    /*!
      * \brief Put `\x50\x52\x65\x67\x01\x00\x00\x00` into stream
      */
     void writeHeader(std::ostream &stream);
@@ -167,13 +180,16 @@ private:
 
 public:
     PRegParser();
-    virtual PolicyFile parse(std::istream &stream);
-    virtual bool write(std::ostream &stream, const PolicyFile &file);
-    virtual ~PRegParser();
+    PolicyFile parse(std::istream &stream);
+    bool write(std::ostream &stream, const PolicyFile &file);
+    ~PRegParser();
 
 private:
-    ::iconv_t m_iconv_read_id;
-    ::iconv_t m_iconv_write_id;
+    PRegParser(const pol::PRegParser &) = delete;
+    void operator=(const pol::PRegParser &) = delete;
+
+    ::iconv_t m_iconvReadId{};
+    ::iconv_t m_iconvWriteId{};
 };
 
 std::unique_ptr<PRegParser> createPregParser();
