@@ -27,9 +27,12 @@
 namespace pol {
 
 /*!
- * \brief Valid POL Registery file header
+ * \brief Valid POL Registery file header. Binary equal valid header.
+ * leToNative is used because the entry 0x0167655250 is 
+ * equivalent to the header in case uint64_t stores a number in LittleEndian.
+ * BigEndian - 0x00 0x00 0x00 0x01 0x67 0x65 0x52 0x50 (bytes must be swaped)
  */
-static const char valid_header[8] = { 0x50, 0x52, 0x65, 0x67, 0x01, 0x00, 0x00, 0x00 };
+static const uint64_t valid_header = leToNative<uint64_t>(0x0167655250);
 
 /*!
  * \brief Match regex `[\x20-\x7E]`
@@ -41,36 +44,30 @@ static inline bool isValueCharacter(uint8_t sym)
 
 PRegParser::PRegParser()
 {
-    this->m_iconv_read_id = ::iconv_open("UTF-8", "UTF-16LE");
-    this->m_iconv_write_id = ::iconv_open("UTF-16LE", "UTF-8");
+    this->m_iconvReadId = ::iconv_open("UTF-8", "UTF-16LE");
+    this->m_iconvWriteId = ::iconv_open("UTF-16LE", "UTF-8");
 }
 
 PolicyFile PRegParser::parse(std::istream &stream)
 {
-    PolicyBody body;
+    PolicyTree instructions;
 
     parseHeader(stream);
 
     stream.peek();
     while (!stream.eof()) {
-        insertInstruction(stream, body.instructions);
+        insertInstruction(stream, instructions);
         stream.peek();
     }
 
-    return { body };
+    return { instructions };
 }
 
 bool PRegParser::write(std::ostream &stream, const PolicyFile &file)
 {
-    if (!file.body.has_value()) {
-        return true;
-    }
-
     writeHeader(stream);
-    for (const auto &[key, records] : file.body->instructions) {
-        for (const auto &[value, instruction] : records) {
-            writeInstruction(stream, instruction, key, value);
-        }
+    for (const auto &instruction : file.instructions) {
+        writeInstruction(stream, instruction, instruction.key, instruction.value);
     }
 
     return true;
@@ -78,22 +75,18 @@ bool PRegParser::write(std::ostream &stream, const PolicyFile &file)
 
 PRegParser::~PRegParser()
 {
-    ::iconv_close(this->m_iconv_read_id);
-    ::iconv_close(this->m_iconv_write_id);
+    ::iconv_close(this->m_iconvReadId);
+    ::iconv_close(this->m_iconvWriteId);
 }
 
 void PRegParser::parseHeader(std::istream &stream)
 {
-    char header[8];
-    stream.read(header, 8);
+    uint64_t header;
+
+    stream.read(reinterpret_cast<char*>(&header), 8);
     check_stream(stream);
 
-    const uint32_t signature = *reinterpret_cast<uint32_t *>(&header[0]);
-    const uint32_t version = *reinterpret_cast<uint32_t *>(&header[4]);
-    const uint32_t normal_signature = *reinterpret_cast<const uint32_t *>(&valid_header[0]);
-    const uint32_t normal_version = *reinterpret_cast<const uint32_t *>(&valid_header[4]);
-
-    if (signature != normal_signature && version != normal_version) {
+    if (header != valid_header) {
         throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
                                  + ", Encountered with invalid header.");
     }
@@ -101,32 +94,18 @@ void PRegParser::parseHeader(std::istream &stream)
 
 uint32_t PRegParser::getSize(std::istream &stream)
 {
-    return bufferToIntegral<uint32_t, true>(stream);
+    return readIntegralFromBuffer<uint32_t, true>(stream);
 }
 
 PolicyRegType PRegParser::getType(std::istream &stream)
 {
-    uint32_t num = bufferToIntegral<uint32_t, true>(stream);
+    PolicyRegType type = static_cast<PolicyRegType>(readIntegralFromBuffer<uint32_t, true>(stream));
 
-    switch (static_cast<PolicyRegType>(num)) {
-    case PolicyRegType::REG_SZ:
-    case PolicyRegType::REG_EXPAND_SZ:
-    case PolicyRegType::REG_BINARY:
-    case PolicyRegType::REG_DWORD_LITTLE_ENDIAN:
-    case PolicyRegType::REG_DWORD_BIG_ENDIAN:
-    case PolicyRegType::REG_LINK:
-    case PolicyRegType::REG_MULTI_SZ:
-    case PolicyRegType::REG_RESOURCE_LIST:
-    case PolicyRegType::REG_FULL_RESOURCE_DESCRIPTOR:
-    case PolicyRegType::REG_RESOURCE_REQUIREMENTS_LIST:
-    case PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
-    case PolicyRegType::REG_QWORD_BIG_ENDIAN:
-        break;
-    default:
-        return {};
+    if (type >= PolicyRegType::REG_SZ && type <= PolicyRegType::REG_QWORD_BIG_ENDIAN) {
+        return type;
     }
 
-    return static_cast<PolicyRegType>(num);
+    return {};
 }
 
 std::string PRegParser::getKey(std::istream &stream)
@@ -136,6 +115,7 @@ std::string PRegParser::getKey(std::istream &stream)
 
     stream.read(reinterpret_cast<char *>(&data), 2);
     check_stream(stream);
+
     data = leToNative(data);
 
     while (data >= 0x20 && data <= 0x7E && data != 0x5C) {
@@ -143,6 +123,7 @@ std::string PRegParser::getKey(std::istream &stream)
 
         stream.read(reinterpret_cast<char *>(&data), 2);
         check_stream(stream);
+
         data = leToNative(data);
     }
 
@@ -155,7 +136,7 @@ std::string PRegParser::getKey(std::istream &stream)
     // Remove last symbol
     stream.seekg(-2, std::ios::cur);
 
-    return { std::move(key) };
+    return { key };
 }
 
 std::string PRegParser::getKeypath(std::istream &stream)
@@ -220,7 +201,7 @@ std::string PRegParser::getValue(std::istream &stream)
         return {};
     }
 
-    return { std::move(result) };
+    return { result };
 }
 
 PolicyData PRegParser::getData(std::istream &stream, PolicyRegType type, uint32_t size)
@@ -232,26 +213,26 @@ PolicyData PRegParser::getData(std::istream &stream, PolicyRegType type, uint32_
     case PolicyRegType::REG_SZ:
     case PolicyRegType::REG_EXPAND_SZ:
     case PolicyRegType::REG_LINK:
-        return { bufferToString(stream, size, this->m_iconv_read_id) };
+        return { readStringFromBuffer(stream, size, this->m_iconvReadId) };
 
     case PolicyRegType::REG_BINARY:
-        return { bufferToVector(stream, size) };
+        return { readVectorFromBuffer(stream, size) };
 
     case PolicyRegType::REG_DWORD_LITTLE_ENDIAN:
-        return { bufferToIntegral<uint32_t, true>(stream) };
+        return { readIntegralFromBuffer<uint32_t, true>(stream) };
     case PolicyRegType::REG_DWORD_BIG_ENDIAN:
-        return { bufferToIntegral<uint32_t, false>(stream) };
+        return { readIntegralFromBuffer<uint32_t, false>(stream) };
 
     case PolicyRegType::REG_MULTI_SZ:
     case PolicyRegType::REG_RESOURCE_LIST:
     case PolicyRegType::REG_FULL_RESOURCE_DESCRIPTOR: // ????
     case PolicyRegType::REG_RESOURCE_REQUIREMENTS_LIST:
-        return { bufferToStrings(stream, size, this->m_iconv_read_id) };
+        return { readStringsFromBuffer(stream, size, this->m_iconvReadId) };
 
     case PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
-        return { bufferToIntegral<uint64_t, true>(stream) };
+        return { readIntegralFromBuffer<uint64_t, true>(stream) };
     case PolicyRegType::REG_QWORD_BIG_ENDIAN:
-        return { bufferToIntegral<uint64_t, false>(stream) };
+        return { readIntegralFromBuffer<uint64_t, false>(stream) };
         break;
     }
     return {};
@@ -264,11 +245,11 @@ void PRegParser::insertInstruction(std::istream &stream, PolicyTree &tree)
 
     check_sym(stream, '[');
 
-    std::string keyPath = getKeypath(stream);
+    instruction.key = getKeypath(stream);
 
     check_sym(stream, ';');
 
-    std::string value = getValue(stream);
+    instruction.value = getValue(stream);
 
     try {
         check_sym(stream, ';');
@@ -285,21 +266,13 @@ void PRegParser::insertInstruction(std::istream &stream, PolicyTree &tree)
 
         check_sym(stream, ']');
 
-        if (tree.find(keyPath) == tree.end()) {
-            tree[keyPath] = {};
-        }
-        if (tree[keyPath].find(value) != tree[keyPath].end()) {
-            throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
-                                     + ", Instruction with key: " + keyPath + ", value: " + value
-                                     + " already exists.");
-        }
-        tree[keyPath][value] = std::move(instruction);
+        tree.emplace_back(std::move(instruction));
 
     } catch (const std::exception &e) {
         throw std::runtime_error(std::string(e.what()) + "\nLINE: " + std::to_string(__LINE__)
                                  + ", FILE: " + __FILE__
                                  + ", Error was encountered wile parsing instruction with key: "
-                                 + keyPath + ", value: " + value);
+                                 + instruction.key + ", value: " + instruction.value);
     }
 }
 
@@ -311,32 +284,33 @@ std::stringstream PRegParser::getDataStream(const PolicyData &data, PolicyRegTyp
     case PolicyRegType::REG_SZ:
     case PolicyRegType::REG_EXPAND_SZ:
     case PolicyRegType::REG_LINK:
-        stringToBuffer(stream, std::get<std::string>(data), this->m_iconv_write_id);
+        writeStringToBuffer(stream, std::get<std::string>(data), this->m_iconvWriteId);
         break;
 
     case PolicyRegType::REG_BINARY:
-        vectorToBuffer(stream, std::get<std::vector<uint8_t>>(data));
+        writeVectorToBuffer(stream, std::get<std::vector<uint8_t>>(data));
         break;
 
     case PolicyRegType::REG_DWORD_LITTLE_ENDIAN:
-        integralToBuffer<uint32_t, true>(stream, std::get<uint32_t>(data));
+        writeIntegralToBuffer<uint32_t, true>(stream, std::get<uint32_t>(data));
         break;
     case PolicyRegType::REG_DWORD_BIG_ENDIAN:
-        integralToBuffer<uint32_t, false>(stream, std::get<uint32_t>(data));
+        writeIntegralToBuffer<uint32_t, false>(stream, std::get<uint32_t>(data));
         break;
 
     case PolicyRegType::REG_MULTI_SZ:
     case PolicyRegType::REG_RESOURCE_LIST:
     case PolicyRegType::REG_FULL_RESOURCE_DESCRIPTOR: // ????
     case PolicyRegType::REG_RESOURCE_REQUIREMENTS_LIST:
-        stringsToBuffer(stream, std::get<std::vector<std::string>>(data), this->m_iconv_write_id);
+        writeStringsFromBuffer(stream, std::get<std::vector<std::string>>(data),
+                               this->m_iconvWriteId);
         break;
 
     case PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
-        integralToBuffer<uint64_t, true>(stream, std::get<uint64_t>(data));
+        writeIntegralToBuffer<uint64_t, true>(stream, std::get<uint64_t>(data));
         break;
     case PolicyRegType::REG_QWORD_BIG_ENDIAN:
-        integralToBuffer<uint64_t, false>(stream, std::get<uint64_t>(data));
+        writeIntegralToBuffer<uint64_t, false>(stream, std::get<uint64_t>(data));
         break;
 
     case PolicyRegType::REG_NONE:
@@ -353,36 +327,121 @@ std::stringstream PRegParser::getDataStream(const PolicyData &data, PolicyRegTyp
 
 void PRegParser::writeHeader(std::ostream &stream)
 {
-    stream.write(valid_header, sizeof(valid_header));
+    stream.write(reinterpret_cast<const char*>(&valid_header), sizeof(valid_header));
+}
+
+void PRegParser::validateKey(std::string::const_iterator &begin, std::string::const_iterator &end)
+{
+    auto cursor = begin;
+
+    while (cursor != end && *cursor >= 0x20 && *cursor <= 0x7E && *cursor != 0x5C) {
+        ++cursor;
+    }
+
+    if (cursor == begin) {
+        throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                 + ", Key is empty.");
+    }
+    begin = cursor;
+}
+
+void PRegParser::validateKeypath(std::string::const_iterator begin, std::string::const_iterator end)
+{
+    if (begin == end) {
+        throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                 + ", Keypath is empty.");
+    }
+    while (begin != end) {
+        validateKey(begin, end);
+
+        if (begin != end && *begin != 0x5C) {
+            throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                     + ", Invalid character in key was encountered.");
+        }
+
+        // Skip 0x5C character
+        ++begin;
+    }
+}
+void PRegParser::validateValue(std::string::const_iterator begin, std::string::const_iterator end)
+{
+    if (begin == end) {
+        throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                 + ", Value is empty.");
+    }
+
+    while (begin != end) {
+        if (*begin < 0x20 || *begin > 0x7E) {
+            throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                     + ", Invalid character in value was encountered.");
+        }
+        ++begin;
+    }
+}
+
+void PRegParser::validateType(PolicyRegType type)
+{
+    switch (type) {
+    default:
+        throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                 + ", Unexpected type UNKNOWN.");
+    case PolicyRegType::REG_NONE:
+        throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
+                                 + ", Unexpected type REG_NONE.");
+
+    case PolicyRegType::REG_SZ:
+    case PolicyRegType::REG_EXPAND_SZ:
+    case PolicyRegType::REG_BINARY:
+    case PolicyRegType::REG_DWORD_LITTLE_ENDIAN:
+    case PolicyRegType::REG_DWORD_BIG_ENDIAN:
+    case PolicyRegType::REG_LINK:
+    case PolicyRegType::REG_MULTI_SZ:
+    case PolicyRegType::REG_RESOURCE_LIST:
+    case PolicyRegType::REG_FULL_RESOURCE_DESCRIPTOR:
+    case PolicyRegType::REG_RESOURCE_REQUIREMENTS_LIST:
+    case PolicyRegType::REG_QWORD_LITTLE_ENDIAN:
+    case PolicyRegType::REG_QWORD_BIG_ENDIAN:
+        break;
+    }
 }
 
 void PRegParser::writeInstruction(std::ostream &stream, const PolicyInstruction &instruction,
                                   std::string key, std::string value)
 {
-    write_sym(stream, '[');
 
-    stringToBuffer(stream, key);
+    try {
+        validateType(instruction.type);
 
-    write_sym(stream, ';');
+        write_sym(stream, '[');
 
-    stringToBuffer(stream, value);
+        writeStringToBuffer(stream, key);
 
-    write_sym(stream, ';');
+        write_sym(stream, ';');
 
-    integralToBuffer<uint32_t, true>(stream, static_cast<uint32_t>(instruction.type));
+        writeStringToBuffer(stream, value);
 
-    write_sym(stream, ';');
+        write_sym(stream, ';');
 
-    auto dataStream = getDataStream(instruction.data, instruction.type);
+        writeIntegralToBuffer<uint32_t, true>(stream, static_cast<uint32_t>(instruction.type));
 
-    integralToBuffer<uint32_t, true>(stream, static_cast<uint32_t>(dataStream.tellp()));
+        write_sym(stream, ';');
 
-    write_sym(stream, ';');
+        auto dataStream = getDataStream(instruction.data, instruction.type);
 
-    stream << dataStream.str();
-    check_stream(stream);
+        writeIntegralToBuffer<uint32_t, true>(stream, static_cast<uint32_t>(dataStream.tellp()));
 
-    write_sym(stream, ']');
+        write_sym(stream, ';');
+
+        stream << dataStream.str();
+        check_stream(stream);
+
+        write_sym(stream, ']');
+    } catch (const std::exception &e) {
+        throw std::runtime_error(std::string(e.what()) + "\nLINE: " + std::to_string(__LINE__)
+                                 + ", FILE: " + __FILE__
+                                 + ", Error was encountered while writing instruction with key: "
+                                 + key + ", value: " + value);
+    }
 }
 
 std::unique_ptr<PRegParser> createPregParser()

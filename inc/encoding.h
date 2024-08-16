@@ -22,11 +22,17 @@
 #define PREGPARSER_ENCODING
 
 #include <array>
+#include <cerrno>
+#include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string.h>
 #include <type_traits>
 
 #include <iconv.h>
+
+static const size_t ICONV_ERROR_CODE = std::numeric_limits<size_t>::max();
+static const iconv_t ICONV_ERROR_DESCRIPTOR = reinterpret_cast<iconv_t>(ICONV_ERROR_CODE);
 
 namespace pol {
 
@@ -35,21 +41,20 @@ namespace pol {
 
 enum class Endian {
     BigEndian,
-    LittleEngian = 1,
+    LittleEndian = 1,
 };
 
 /*!
  * \brief Get current native endianness
  */
-inline constexpr Endian getEndianess()
+inline Endian getEndianess()
 {
-    constexpr uint32_t uint32_ = 0x01020304;
-    constexpr uint8_t magic_ = (const uint8_t &)uint32_;
-    constexpr bool little = magic_ == 0x04;
-    constexpr bool big = magic_ == 0x01;
-    static_assert(little || big, "Cannot determine endianness!");
+    union {
+        uint32_t i;
+        char c[4];
+    } bint = { 0x01020304 };
 
-    return little ? Endian::LittleEngian : Endian::BigEndian;
+    return bint.c[0] == 0x01 ? Endian::BigEndian : Endian::LittleEndian;
 }
 
 /*!
@@ -58,7 +63,7 @@ inline constexpr Endian getEndianess()
 template <typename T,
           typename = std::enable_if_t<std::is_integral_v<T>
                                       && sizeof(T) <= sizeof(unsigned long long)>>
-inline constexpr T byteswap(T value)
+inline T byteswap(T value)
 {
     if constexpr (sizeof(T) == 1) {
         return value;
@@ -84,10 +89,10 @@ inline constexpr T byteswap(T value)
 template <typename T,
           typename = std::enable_if_t<std::is_integral_v<T>
                                       && sizeof(T) <= sizeof(unsigned long long)>>
-inline constexpr T beToNative(T value)
+inline T beToNative(T value)
 {
-    constexpr auto endianess = getEndianess();
-    if constexpr (endianess == Endian::BigEndian) {
+    auto endianess = getEndianess();
+    if (endianess == Endian::BigEndian) {
         return value;
     }
     return byteswap(value);
@@ -99,10 +104,10 @@ inline constexpr T beToNative(T value)
 template <typename T,
           typename = std::enable_if_t<std::is_integral_v<T>
                                       && sizeof(T) <= sizeof(unsigned long long)>>
-inline constexpr T leToNative(T value)
+inline T leToNative(T value)
 {
-    constexpr auto endianess = getEndianess();
-    if constexpr (endianess == Endian::LittleEngian) {
+    auto endianess = getEndianess();
+    if (endianess == Endian::LittleEndian) {
         return value;
     }
     return byteswap(value);
@@ -147,19 +152,18 @@ inline std::basic_string<target_char> convert(string_const_iterator<source_char>
     char *inbuf = reinterpret_cast<char *>(const_cast<source_char *>(&*begin));
     size_t inbytesLeft = std::distance(begin, end) * sizeof(source_char);
 
-    auto temp = std::make_unique<std::array<char, 512>>();
-    char *outbuf = temp->data();
+    auto temp = std::make_unique<std::array<target_char, 512>>();
+    target_char *outbuf = temp->data();
     size_t outbytesLeft = temp->size();
 
     while (inbytesLeft > 0) {
-        auto ret = iconv(conv, &inbuf, &inbytesLeft, &outbuf, &outbytesLeft);
-        if (ret == static_cast<size_t>(-1) && errno != E2BIG) {
+        auto ret = iconv(conv, &inbuf, &inbytesLeft, reinterpret_cast<char**>(&outbuf), &outbytesLeft);
+        if (ret == ICONV_ERROR_CODE && errno != E2BIG) {
             throw std::runtime_error("LINE: " + std::to_string(__LINE__) + ", FILE: " + __FILE__
                                      + ", Encountered corrupted unicode string.");
         }
 
-        result.append(reinterpret_cast<target_char *>(temp->data()),
-                      reinterpret_cast<target_char *>(outbuf));
+        result.append(temp->data(), outbuf);
         outbuf = temp->data();
         outbytesLeft = temp->size();
     }
