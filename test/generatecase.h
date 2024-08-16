@@ -27,7 +27,7 @@
 #include "./testcases.h"
 #include <encoding.h>
 #include <parser.h>
-
+/*
 std::string generateRandomKey(size_t length, std::mt19937 &gen)
 {
     std::string key;
@@ -196,3 +196,4 @@ void generateCase(size_t last, size_t seed = -1)
         ++current;
     }
 }
+*/

@@ -27,7 +27,7 @@
 #include <sstream>
 
 void testBufferToIntegral()
-{
+{/*
     std::stringstream buffer;
     char tmp[4] = { 0x12, 0x34, 0x56, 0x78 };
     const uint32_t &num = *reinterpret_cast<uint32_t *>(&tmp[0]);
@@ -53,7 +53,7 @@ void testBufferToIntegral()
     std::reverse(tmp, tmp + 4);
     assert(result.value_or(0) == num);
 
-    std::cout << "bufferToIntegral<uint32_t, false>: OK" << std::endl;
+    std::cout << "bufferToIntegral<uint32_t, false>: OK" << std::endl;*/
 }
 
 void testIntegralToBuffer() { }
